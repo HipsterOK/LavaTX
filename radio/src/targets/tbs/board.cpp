@@ -291,7 +291,7 @@ void boardInit()
   //   RCC_APB2PeriphClockCmd(ADC_RCC_APB2Periph | ROTARY_ENCODER_RCC_APB2Periph | EXTMODULE_RCC_APB2Periph,
   //                          ENABLE);
   // }
-  RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB |
+  RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
                              KEYS_RCC_AHB1Periph | RCC_AHB1Periph_GPIOA | // LCD GPIO на PA
                              AUDIO_RCC_AHB1Periph |
                              ADC_RCC_AHB1Periph |
