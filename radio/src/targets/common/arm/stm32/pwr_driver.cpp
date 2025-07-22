@@ -110,7 +110,7 @@ void pwrOn()
 
 void pwrOff()
 {
-  // GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 }
 
 #if defined(PWR_EXTRA_SWITCH_GPIO)

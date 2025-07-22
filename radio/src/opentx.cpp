@@ -2306,84 +2306,84 @@ uint32_t pwrPressedDuration()
 
 uint32_t pwrCheck()
 {
-//   const char * message = nullptr;
+  const char * message = nullptr;
 
-//   enum PwrCheckState {
-//     PWR_CHECK_ON,
-//     PWR_CHECK_OFF,
-//     PWR_CHECK_PAUSED,
-//   };
+  enum PwrCheckState {
+    PWR_CHECK_ON,
+    PWR_CHECK_OFF,
+    PWR_CHECK_PAUSED,
+  };
 
-//   static uint8_t pwr_check_state = PWR_CHECK_ON;
+  static uint8_t pwr_check_state = PWR_CHECK_ON;
 
-//   if (pwr_check_state == PWR_CHECK_OFF) {
-//     return e_power_off;
-//   }
-//   else if (pwrPressed()) {
-//     if (TELEMETRY_STREAMING()) {
-//       message = STR_MODEL_STILL_POWERED;
-//     }
-//     if (pwr_check_state == PWR_CHECK_PAUSED) {
-//       // nothing
-//     }
-//     else if (pwr_press_time == 0) {
-//       pwr_press_time = get_tmr10ms();
-//       if (message && !g_eeGeneral.disableRssiPoweroffAlarm) {
-//         audioEvent(AU_MODEL_STILL_POWERED);
-//       }
-//     }
-//     else {
-//       inactivity.counter = 0;
-//       if (g_eeGeneral.backlightMode != e_backlight_mode_off) {
-//         BACKLIGHT_ENABLE();
-//       }
-//       if (get_tmr10ms() - pwr_press_time > PWR_PRESS_SHUTDOWN_DELAY()) {
-// #if defined(SHUTDOWN_CONFIRMATION)
-//         while (1) {
-// #else
-//         while ((TELEMETRY_STREAMING() && !g_eeGeneral.disableRssiPoweroffAlarm)) {
-// #endif
-//           lcdRefreshWait();
-//           lcdClear();
+  if (pwr_check_state == PWR_CHECK_OFF) {
+    return e_power_off;
+  }
+  else if (pwrPressed()) {
+    if (TELEMETRY_STREAMING()) {
+      message = STR_MODEL_STILL_POWERED;
+    }
+    if (pwr_check_state == PWR_CHECK_PAUSED) {
+      // nothing
+    }
+    else if (pwr_press_time == 0) {
+      pwr_press_time = get_tmr10ms();
+      if (message && !g_eeGeneral.disableRssiPoweroffAlarm) {
+        audioEvent(AU_MODEL_STILL_POWERED);
+      }
+    }
+    else {
+      inactivity.counter = 0;
+      if (g_eeGeneral.backlightMode != e_backlight_mode_off) {
+        BACKLIGHT_ENABLE();
+      }
+      if (get_tmr10ms() - pwr_press_time > PWR_PRESS_SHUTDOWN_DELAY()) {
+#if defined(SHUTDOWN_CONFIRMATION)
+        while (1) {
+#else
+        while ((TELEMETRY_STREAMING() && !g_eeGeneral.disableRssiPoweroffAlarm)) {
+#endif
+          lcdRefreshWait();
+          lcdClear();
 
-//           POPUP_CONFIRMATION(STR_MODEL_SHUTDOWN, nullptr);
-// #if defined(SHUTDOWN_CONFIRMATION)
-//           if (TELEMETRY_STREAMING() && !g_eeGeneral.disableRssiPoweroffAlarm) {
-//             SET_WARNING_INFO(STR_MODEL_STILL_POWERED, sizeof(TR_MODEL_STILL_POWERED), 0);
-//           }
-// #else
-//           SET_WARNING_INFO(STR_MODEL_STILL_POWERED, sizeof(TR_MODEL_STILL_POWERED), 0);
-// #endif
-//           event_t evt = getEvent(false);
-//           DISPLAY_WARNING(evt);
-//           LED_ERROR_BEGIN();
-//           lcdRefresh();
+          POPUP_CONFIRMATION(STR_MODEL_SHUTDOWN, nullptr);
+#if defined(SHUTDOWN_CONFIRMATION)
+          if (TELEMETRY_STREAMING() && !g_eeGeneral.disableRssiPoweroffAlarm) {
+            SET_WARNING_INFO(STR_MODEL_STILL_POWERED, sizeof(TR_MODEL_STILL_POWERED), 0);
+          }
+#else
+          SET_WARNING_INFO(STR_MODEL_STILL_POWERED, sizeof(TR_MODEL_STILL_POWERED), 0);
+#endif
+          event_t evt = getEvent(false);
+          DISPLAY_WARNING(evt);
+          LED_ERROR_BEGIN();
+          lcdRefresh();
 
-//           if (warningResult) {
-//             pwr_check_state = PWR_CHECK_OFF;
-//             return e_power_off;
-//           }
-//           else if (!warningText) {
-//             // shutdown has been cancelled
-//             pwr_check_state = PWR_CHECK_PAUSED;
-//             LED_ERROR_END();
-//             return e_power_on;
-//           }
-//         }
-//         haptic.play(15, 3, PLAY_NOW);
-//         pwr_check_state = PWR_CHECK_OFF;
-//         return e_power_off;
-//       }
-//       else {
-//         drawShutdownAnimation(pwrPressedDuration(), PWR_PRESS_SHUTDOWN_DELAY(), message);
-//         return e_power_press;
-//       }
-//     }
-//   }
-//   else {
-//     pwr_check_state = PWR_CHECK_ON;
-//     pwr_press_time = 0;
-//   }
+          if (warningResult) {
+            pwr_check_state = PWR_CHECK_OFF;
+            return e_power_off;
+          }
+          else if (!warningText) {
+            // shutdown has been cancelled
+            pwr_check_state = PWR_CHECK_PAUSED;
+            LED_ERROR_END();
+            return e_power_on;
+          }
+        }
+        haptic.play(15, 3, PLAY_NOW);
+        pwr_check_state = PWR_CHECK_OFF;
+        return e_power_off;
+      }
+      else {
+        drawShutdownAnimation(pwrPressedDuration(), PWR_PRESS_SHUTDOWN_DELAY(), message);
+        return e_power_press;
+      }
+    }
+  }
+  else {
+    pwr_check_state = PWR_CHECK_ON;
+    pwr_press_time = 0;
+  }
 
   return e_power_on;
 }
