@@ -41,7 +41,7 @@ void rotaryEncoderCheck();
 #endif
 
 #if defined(RADIO_TANGO)
-#define MY_DEVICE_NAME                  "Tango II"
+#define MY_DEVICE_NAME                  "Lava One"
 #elif defined(RADIO_MAMBO)
 #define MY_DEVICE_NAME                  "Mambo"
 #endif
@@ -69,9 +69,9 @@ void rotaryEncoderCheck();
 #endif
 
 extern uint16_t sessionTimer;
-#if defined(RADIO_TANGO)
+#if defined(RADIO_MAMBO)
 static const uint8_t switchPosition[][2] = {{0,0}, {0,1}, {1,0}, {1,1}, {1,2}, {0,2}};
-#elif defined(RADIO_MAMBO)
+#elif defined(RADIO_TANGO)
 static const uint8_t switchPosition[][2] = {{0,1}, {0,0}, {1,0}, {1,1}, {0,2}, {1,2}};
 #endif
 
@@ -473,10 +473,10 @@ uint32_t pwrPressedDuration();
 
 void usbJoystickUpdate();
 #define USB_FIRMWARE_DEFAULT_MODE       USB_AGENT_MODE
-#define USB_NAME                        "TBS"
-#define USB_MANUFACTURER                'T', 'B', 'S', ' ', ' ', ' ', ' ', ' '  /* 8 bytes */
+#define USB_NAME                        "Lava"
+#define USB_MANUFACTURER                'L', 'A', 'V', 'A', ' ', ' ', ' ', ' '  /* 8 bytes */
 #if defined(RADIO_TANGO)
-#define USB_PRODUCT                     'T', 'a', 'n', 'g', 'o', ' ', '2', ' '  /* 8 Bytes */
+#define USB_PRODUCT                     'O', 'n', 'e', ' ', ' ', ' ', ' ', ' '  /* 8 Bytes */
 #else
 #define USB_PRODUCT                     'M', 'a', 'm', 'b', 'o', ' ', ' ', ' '  /* 8 Bytes */
 #endif

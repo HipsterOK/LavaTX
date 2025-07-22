@@ -253,7 +253,7 @@ void menuRadioVersion(event_t event)
 
   y += 2;
 
-#if defined(RADIO_TANGO)
+#if defined(RADIO_MAMBO)
   lcdDrawText(INDENT_WIDTH, y, TR_HW_REV " : ", 0);
   lcdDrawNumber(lcdNextPos, y, hardwareOptions.pcbrev, 0);
   y += 2 * FH;

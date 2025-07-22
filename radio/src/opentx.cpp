@@ -549,7 +549,7 @@ void checkModelIdUnique(uint8_t module)
 
   // cannot rely exactly on WARNING_LINE_LEN so using WARNING_LINE_LEN-2
   size_t warn_buf_len = sizeof(reusableBuffer.moduleSetup.msg) - WARNING_LINE_LEN - 2;
-  if (!modelslist.isModelIdUnique(module,warn_buf,warn_buf_len)) {
+  if (!modelslist->isModelIdUnique(module,warn_buf,warn_buf_len)) {
     if (warn_buf[0] != 0) {
       POPUP_WARNING(STR_MODELIDUSED);
       SET_WARNING_INFO(warn_buf, sizeof(reusableBuffer.moduleSetup.msg), 0);
@@ -2101,10 +2101,14 @@ void opentxInit()
     rambackupRestore();
   }
   else {
-    // storageReadAll();
+  // ALERT(STR_STORAGE_WARNING, "BEFORE STORAGE", AU_BAD_RADIODATA);
+  storageReadAll();
+  // ALERT(STR_STORAGE_WARNING, "AFTER STORAGE", AU_BAD_RADIODATA);
   }
 #else
-  // storageReadAll();
+  // ALERT(STR_STORAGE_WARNING, "BEFORE STORAGE", AU_BAD_RADIODATA);
+  storageReadAll();
+  // ALERT(STR_STORAGE_WARNING, "AFTER STORAGE", AU_BAD_RADIODATA);
 #endif
 #endif  // #if !defined(EEPROM)
 
@@ -2386,41 +2390,41 @@ uint32_t pwrCheck()
 #else
 uint32_t pwrCheck()
 {
-// #if defined(SOFT_PWR_CTRL)
-//   if (pwrPressed()) {
-//     return e_power_on;
-//   }
-// #endif
+#if defined(SOFT_PWR_CTRL)
+  if (pwrPressed()) {
+    return e_power_on;
+  }
+#endif
 
-//   if (usbPlugged()) {
-//     return e_power_usb;
-//   }
+  if (usbPlugged()) {
+    return e_power_usb;
+  }
 
-// #if defined(TRAINER_PWR)
-//   if (TRAINER_CONNECTED()) {
-//     return e_power_trainer;
-//   }
-// #endif
+#if defined(TRAINER_PWR)
+  if (TRAINER_CONNECTED()) {
+    return e_power_trainer;
+  }
+#endif
 
-//   if (!g_eeGeneral.disableRssiPoweroffAlarm) {
-//     if (TELEMETRY_STREAMING()) {
-//       RAISE_ALERT(STR_MODEL, STR_MODEL_STILL_POWERED, STR_PRESS_ENTER_TO_CONFIRM, AU_MODEL_STILL_POWERED);
-//       while (TELEMETRY_STREAMING()) {
-//         resetForcePowerOffRequest();
-//         RTOS_WAIT_MS(20);
-//         if (pwrPressed()) {
-//           return e_power_on;
-//         }
-//         else if (readKeys() == (1 << KEY_ENTER)) {
-//           return e_power_off;
-//         }
-//       }
-//     }
-//   }
+  if (!g_eeGeneral.disableRssiPoweroffAlarm) {
+    if (TELEMETRY_STREAMING()) {
+      RAISE_ALERT(STR_MODEL, STR_MODEL_STILL_POWERED, STR_PRESS_ENTER_TO_CONFIRM, AU_MODEL_STILL_POWERED);
+      while (TELEMETRY_STREAMING()) {
+        resetForcePowerOffRequest();
+        RTOS_WAIT_MS(20);
+        if (pwrPressed()) {
+          return e_power_on;
+        }
+        else if (readKeys() == (1 << KEY_ENTER)) {
+          return e_power_off;
+        }
+      }
+    }
+  }
 
-  // return e_power_off;
+  return e_power_off;
 
-  return e_power_on;
+  // return e_power_on;
 }
 #endif  // defined(PWR_BUTTON_PRESS)
 #endif  // !defined(SIMU)

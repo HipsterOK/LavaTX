@@ -58,7 +58,8 @@ void setSelectedUsbMode(int mode)
 int usbPlugged()
 {
   static PinDebounce debounce;
-  return debounce.debounce(USB_GPIO, USB_GPIO_PIN_VBUS);
+  // return debounce.debounce(USB_GPIO, USB_GPIO_PIN_VBUS);
+  return 1;
 }
 
 USB_OTG_CORE_HANDLE USB_OTG_dev;

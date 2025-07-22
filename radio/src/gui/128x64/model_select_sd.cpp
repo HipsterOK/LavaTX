@@ -81,7 +81,7 @@ void getSelectedModel(unsigned int index)
 void setCurrentCategory(unsigned int index)
 {
   modelSelect.currentCategoryIndex = index;
-  const std::list<ModelsCategory *>& cats = modelslist.getCategories();
+  const std::list<ModelsCategory *>& cats = modelslist->getCategories();
   std::list<ModelsCategory *>::const_iterator it = cats.begin();
   std::advance(it, index);
   modelSelect.currentCategory = *it;
@@ -91,14 +91,14 @@ void setCurrentCategory(unsigned int index)
 
 void initModelsList()
 {
-  modelslist.load();
+  modelslist->load();
 
   modelSelect.categoriesVerticalOffset = 0;
   bool found = false;
   int index = 0;
-  const std::list<ModelsCategory *>& cats = modelslist.getCategories();
+  const std::list<ModelsCategory *>& cats = modelslist->getCategories();
   for (std::list<ModelsCategory *>::const_iterator it = cats.begin(); it != cats.end(); ++it, ++index) {
-    if (*it == modelslist.getCurrentCategory()) {
+    if (*it == modelslist->getCurrentCategory()) {
       setCurrentCategory(index);
       found = true;
       break;
@@ -112,7 +112,7 @@ void initModelsList()
   found = false;
   index = 0;
   for (ModelsCategory::iterator it = modelSelect.currentCategory->begin(); it != modelSelect.currentCategory->end(); ++it, ++index) {
-    if (*it == modelslist.getCurrentModel()) {
+    if (*it == modelslist->getCurrentModel()) {
       setCurrentModel(index);
       menuVerticalPosition = index;
       found = true;
@@ -120,10 +120,10 @@ void initModelsList()
     }
   }
   if (!found) {
-    modelslist.addModel(modelSelect.currentCategory, g_eeGeneral.currModelFilename);
+    modelslist->addModel(modelSelect.currentCategory, g_eeGeneral.currModelFilename);
     setCurrentModel(0);
-    modelslist.setCurrentModel(modelSelect.currentModel);
-    modelslist.save();
+    modelslist->setCurrentModel(modelSelect.currentModel);
+    modelslist->save();
     storageDirty(EE_GENERAL);
     storageDirty(EE_MODEL);
     storageCheck(true);
@@ -138,10 +138,10 @@ void onModelSelectMenu(const char * result)
     storageFlushCurrentModel();
     storageCheck(true);
     memcpy(g_eeGeneral.currModelFilename, modelSelect.currentModel->modelFilename, LEN_MODEL_FILENAME);
-    modelslist.setCurrentModel(modelSelect.currentModel);
+    modelslist->setCurrentModel(modelSelect.currentModel);
     loadModel(g_eeGeneral.currModelFilename, true);
-    modelslist.setCurrentCategory(modelSelect.currentCategory);
-    modelslist.save();
+    modelslist->setCurrentCategory(modelSelect.currentCategory);
+    modelslist->save();
 #if defined(INTERNAL_MODULE_CRSF)
     if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
       crossfireTurnOnRf();
@@ -162,13 +162,13 @@ void onModelSelectMenu(const char * result)
   }
   else if (result == STR_CREATE_MODEL) {
     storageCheck(true);
-    modelslist.addModel(modelSelect.currentCategory, createModel());
+    modelslist->addModel(modelSelect.currentCategory, createModel());
     modelSelect.selectMode = MODE_SELECT_MODEL;
     setCurrentModel(modelSelect.currentCategory->size() - 1 );
-    modelslist.setCurrentModel(modelSelect.currentModel);
-    modelslist.onNewModelCreated(modelSelect.currentModel, &g_model);
-    modelslist.setCurrentCategory(modelSelect.currentCategory);
-    modelslist.save();
+    modelslist->setCurrentModel(modelSelect.currentModel);
+    modelslist->onNewModelCreated(modelSelect.currentModel, &g_model);
+    modelslist->setCurrentCategory(modelSelect.currentCategory);
+    modelslist->save();
 #if defined(INTERNAL_MODULE_CRSF)
     if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
       crossfireTurnOnRf();
@@ -188,7 +188,7 @@ void onModelSelectMenu(const char * result)
     memcpy(duplicatedFilename, modelSelect.currentModel->modelFilename, sizeof(duplicatedFilename));
     if (findNextFileIndex(duplicatedFilename, LEN_MODEL_FILENAME, MODELS_PATH)) {
       sdCopyFile(modelSelect.currentModel->modelFilename, MODELS_PATH, duplicatedFilename, MODELS_PATH);
-      ModelCell* dup_model = modelslist.addModel(modelSelect.currentCategory, duplicatedFilename);
+      ModelCell* dup_model = modelslist->addModel(modelSelect.currentCategory, duplicatedFilename);
       dup_model->fetchRfData();
       menuVerticalPosition = modelSelect.currentCategory->size() - 1;
     }
@@ -202,9 +202,9 @@ void onModelSelectMenu(const char * result)
     modelSelect.categorySelectMode = true;
   }
   else if (result == STR_CREATE_CATEGORY) {
-    modelSelect.currentCategory = modelslist.createCategory();
-    setCurrentCategory(modelslist.getCategories().size() - 1);
-    modelslist.save();
+    modelSelect.currentCategory = modelslist->createCategory();
+    setCurrentCategory(modelslist->getCategories().size() - 1);
+    modelslist->save();
     storageDirty(EE_GENERAL);
     storageCheck(true);
   }
@@ -232,20 +232,20 @@ void menuModelSelect(event_t event) {
 
     if (modelSelect.deleteMode == MODE_DELETE_CATEGORY) {
       TRACE("DELETE CATEGORY");
-      modelslist.removeCategory(modelSelect.currentCategory);
-      modelslist.save();
+      modelslist->removeCategory(modelSelect.currentCategory);
+      modelslist->save();
       setCurrentCategory(modelSelect.currentCategoryIndex > 0 ? modelSelect.currentCategoryIndex-1 : modelSelect.currentCategoryIndex);
     }
     else if (modelSelect.deleteMode == MODE_DELETE_MODEL) {
       int modelIndex = menuVerticalPosition;
       setCurrentModel(modelIndex);
-      modelslist.removeModel(modelSelect.currentCategory, modelSelect.currentModel);
+      modelslist->removeModel(modelSelect.currentCategory, modelSelect.currentModel);
       modelSelect.selectMode = 0;
       menuVerticalPosition = modelSelect.currentCategory->size()-1;
     }
   }
 
-  const std::list<ModelsCategory*>& cats = modelslist.getCategories();
+  const std::list<ModelsCategory*>& cats = modelslist->getCategories();
 
   title(STR_MENUMODELSEL);
   drawScreenIndex(MENU_MODEL_SELECT, DIM(menuTabModel), 0);
@@ -304,7 +304,7 @@ void menuModelSelect(event_t event) {
           ModelsCategory * previous_category = modelSelect.currentCategory;
           ModelCell * model = modelSelect.currentModel;
           setCurrentCategory(modelSelect.categoriesVerticalPosition);
-          modelslist.moveModel(model, previous_category, modelSelect.currentCategory);
+          modelslist->moveModel(model, previous_category, modelSelect.currentCategory);
           menuVerticalPosition = modelSelect.currentCategory->size()-1;
         }
 
@@ -334,7 +334,7 @@ void menuModelSelect(event_t event) {
           ModelsCategory * previous_category = modelSelect.currentCategory;
           ModelCell * model = modelSelect.currentModel;
           setCurrentCategory(modelSelect.categoriesVerticalPosition);
-          modelslist.moveModel(model, previous_category, modelSelect.currentCategory);
+          modelslist->moveModel(model, previous_category, modelSelect.currentCategory);
         }
 
         modelSelect.subModelIndex = -1;
@@ -396,7 +396,7 @@ void menuModelSelect(event_t event) {
         lcdDrawRect(8, y - 1, MODELSEL_W - 1 - 7, 9,  DOTTED);
         editName(4, y, modelSelect.currentCategory->name, sizeof(modelSelect.currentCategory->name), event, 1, 0);
         if (s_editMode == 0 || event == EVT_KEY_BREAK(KEY_EXIT)) {
-          modelslist.save();
+          modelslist->save();
           modelSelect.selectMode = MODE_SELECT_MODEL;
         }
       }

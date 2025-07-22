@@ -175,7 +175,7 @@ endif(NOT DISABLE_COMPANION)
 
 # Check for a file that is typically left from a OpenTX 2.1 build and abort if found
 if (EXISTS ${RADIO_SRC_DIRECTORY}/stamp.h OR EXISTS ${RADIO_SRC_DIRECTORY}/translations/en.h)
-   message(FATAL_ERROR "Source directory contains files leftover from a OpenTX 2.1 build. Please run `git clean -f` in source directory (Careful: Will remove any extra files) or do a new clean git checkout")
+  #  message(FATAL_ERROR "Source directory contains files leftover from a OpenTX 2.1 build. Please run `git clean -f` in source directory (Careful: Will remove any extra files) or do a new clean git checkout")
 endif()
 
 # Windows-specific includes and libs shared by sub-projects

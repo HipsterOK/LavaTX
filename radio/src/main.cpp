@@ -19,6 +19,7 @@
  */
 
 #include "opentx.h"
+#include "hall90393.h"
 
 uint8_t currentSpeakerVolume = 255;
 uint8_t requiredSpeakerVolume = 255;
@@ -587,7 +588,14 @@ void guiMain(event_t evt)
   }
 }
 #endif
-
+static inline int16_t map_hall(int16_t value) {
+    const int16_t hall_min = -6000;
+    const int16_t hall_max = 6000;
+    if (value < hall_min) value = hall_min;
+    if (value > hall_max) value = hall_max;
+    // Маппим в -1024...+1024
+    return (int16_t)(((int32_t)(value - hall_min) * 2048) / (hall_max - hall_min) - 1024);
+}
 void perMain()
 {
   DEBUG_TIMER_START(debugTimerPerMain1);
@@ -597,8 +605,8 @@ void perMain()
 #endif
 
   checkSpeakerVolume();
-
-  if (!usbPlugged()) {
+  hall90393_lazy_init();
+   if (!usbPlugged()) {
     checkEeprom();
     logsWrite();
   }

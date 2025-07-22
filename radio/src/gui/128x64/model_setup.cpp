@@ -244,7 +244,7 @@ inline uint8_t MODULE_TYPE_ROWS(int moduleIdx)
 {
   if (isModuleXJT(moduleIdx) || isModuleR9MNonAccess(moduleIdx) || isModuleDSM2(moduleIdx))
     return 1;
-#if defined(RADIO_TANGO)
+#if defined(RADIO_TANGO1)
   else if (IS_PCBREV_01())
     return HIDDEN_ROW;
 #endif
@@ -1544,7 +1544,7 @@ void menuModelSetup(event_t event)
                 else if (event == EVT_KEY_LONG(KEY_ENTER)) {
                   killEvents(event);
 #if defined(EEPROM_SDCARD)
-                  uint8_t newVal = modelslist.findNextUnusedModelId(moduleIdx);
+                  uint8_t newVal = modelslist->findNextUnusedModelId(moduleIdx);
 #else
                   uint8_t newVal = findNextUnusedModelId(g_eeGeneral.currModel, moduleIdx);
 #endif
@@ -2033,7 +2033,7 @@ void menuModelSetup(event_t event)
   // some field just finished being edited
   if (old_editMode > 0 && s_editMode == 0) {
 #if defined(EEPROM_SDCARD)
-    ModelCell * mod_cell = modelslist.getCurrentModel();
+    ModelCell * mod_cell = modelslist->getCurrentModel();
     if (mod_cell) {
       switch(menuVerticalPosition) {
         case ITEM_MODEL_SETUP_NAME:

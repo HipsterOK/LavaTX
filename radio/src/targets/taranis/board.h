@@ -774,7 +774,8 @@ void pwrResetHandler();
 #if defined(SIMU)
 #define UNEXPECTED_SHUTDOWN()           false
 #else
-#define UNEXPECTED_SHUTDOWN()           (WAS_RESET_BY_WATCHDOG() || g_eeGeneral.unexpectedShutdown)
+// #define UNEXPECTED_SHUTDOWN()           (WAS_RESET_BY_WATCHDOG() || g_eeGeneral.unexpectedShutdown)
+#define UNEXPECTED_SHUTDOWN()           false
 #endif
 
 // Backlight driver

@@ -212,34 +212,58 @@ void storageCheck(bool immediately)
 
 void storageReadAll()
 {
-  TRACE("storageReadAll");
+  modelslist = new ModelsList();
+  // ALERT(STR_STORAGE_WARNING, "0 START", AU_BAD_RADIODATA);
 
-  if (loadRadioSettings() != nullptr) {
+  const char* radioError = loadRadioSettings();
+  // ALERT(STR_STORAGE_WARNING, "1 RADIO OK", AU_BAD_RADIODATA);
+
+  if (radioError != nullptr) {
+    ALERT(STR_STORAGE_WARNING, radioError, AU_BAD_RADIODATA);
     storageEraseAll(true);
 #if defined(RADIO_FAMILY_TBS)
     bkregSetStatusFlag(STORAGE_ERASE_STATUS);
 #endif
   }
 
+  // ALERT(STR_STORAGE_WARNING, "2 LANG PACK", AU_BAD_RADIODATA);
+
+  bool langFound = false;
   for (uint8_t i = 0; languagePacks[i] != nullptr; i++) {
     if (!strncmp(g_eeGeneral.ttsLanguage, languagePacks[i]->id, 2)) {
       currentLanguagePackIdx = i;
       currentLanguagePack = languagePacks[i];
+      langFound = true;
     }
   }
+  if (!langFound) {
+    // ALERT(STR_STORAGE_WARNING, "Language pack not found!", AU_BAD_RADIODATA);
+  }
 
-  if (loadModel(g_eeGeneral.currModelFilename, false) != nullptr) {
+  // ALERT(STR_STORAGE_WARNING, "3 LOAD MODEL", AU_BAD_RADIODATA);
+
+  const char* modelError = loadModel(g_eeGeneral.currModelFilename, false);
+  // ALERT(STR_STORAGE_WARNING, "4 MODEL OK", AU_BAD_RADIODATA);
+
+  if (modelError != nullptr) {
+    ALERT(STR_STORAGE_WARNING, modelError, AU_BAD_RADIODATA);
     sdCheckAndCreateDirectory(MODELS_PATH);
     createModel();
   }
 
-  // Wipe models list in case
-  // it's being reloaded after USB connection
-  modelslist.clear();
+  // ALERT(STR_STORAGE_WARNING, "5 CLEAR MODELSLIST", AU_BAD_RADIODATA);
 
-  // and reload the list
-  modelslist.load();
+  modelslist->clear();
+  // ALERT(STR_STORAGE_WARNING, "6 LOAD MODELSLIST", AU_BAD_RADIODATA);
+
+  if (modelslist->load() != 0) {
+    // ALERT(STR_STORAGE_WARNING, "Failed to load models list!", AU_BAD_RADIODATA);
+  }
+
+  // ALERT(STR_STORAGE_WARNING, "7 STORAGE DONE", AU_BAD_RADIODATA);
 }
+
+
 
 void storageCreateModelsList()
 {

@@ -163,6 +163,7 @@ set(TARGET_SRC
   ../common/arm/stm32/adc_driver.cpp
   ../common/arm/stm32/rotary_encoder_driver.cpp
   ../common/arm/stm32/mixer_scheduler_driver.cpp
+  ../common/arm/stm32/hall90393.cpp
   malloc.c
   )
 

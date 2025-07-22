@@ -21,7 +21,7 @@
 #include "modelslist.h"
 using std::list;
 
-ModelsList modelslist;
+ModelsList *modelslist = nullptr;
 
 ModelCell::ModelCell(const char * name)
 #if !defined(MODEL_HAVE_NO_BITMAP)
@@ -509,7 +509,7 @@ void ModelsList::moveModel(ModelCell * model, ModelsCategory * previous_category
 
 bool ModelsList::isModelIdUnique(uint8_t moduleIdx, char* warn_buf, size_t warn_buf_len)
 {
-  ModelCell* modelCell = modelslist.getCurrentModel();
+  ModelCell* modelCell = modelslist->getCurrentModel();
   if (!modelCell || !modelCell->valid_rfData) {
     // in doubt, pretend it's unique
     return true;
@@ -524,7 +524,7 @@ bool ModelsList::isModelIdUnique(uint8_t moduleIdx, char* warn_buf, size_t warn_
   curr[0] = 0;
 
   bool hit_found = false;
-  const std::list<ModelsCategory*>& cats = modelslist.getCategories();
+  const std::list<ModelsCategory*>& cats = modelslist->getCategories();
   std::list<ModelsCategory*>::const_iterator catIt = cats.begin();
   for (;catIt != cats.end(); catIt++) {
     for (ModelsCategory::const_iterator it = (*catIt)->begin(); it != (*catIt)->end(); it++) {
@@ -574,7 +574,7 @@ bool ModelsList::isModelIdUnique(uint8_t moduleIdx, char* warn_buf, size_t warn_
 
 uint8_t ModelsList::findNextUnusedModelId(uint8_t moduleIdx)
 {
-  ModelCell * modelCell = modelslist.getCurrentModel();
+  ModelCell * modelCell = modelslist->getCurrentModel();
   if (!modelCell || !modelCell->valid_rfData) {
     return 0;
   }
@@ -585,7 +585,7 @@ uint8_t ModelsList::findNextUnusedModelId(uint8_t moduleIdx)
   uint8_t usedModelIds[(MAX_RXNUM + 7) / 8];
   memset(usedModelIds, 0, sizeof(usedModelIds));
   
-  const std::list<ModelsCategory *> & cats = modelslist.getCategories();
+  const std::list<ModelsCategory *> & cats = modelslist->getCategories();
   for (auto catIt = cats.begin(); catIt != cats.end(); catIt++) {
     for (auto it = (*catIt)->begin(); it != (*catIt)->end(); it++) {
       if (modelCell == *it)

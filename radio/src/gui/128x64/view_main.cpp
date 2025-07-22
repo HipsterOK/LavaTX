@@ -168,7 +168,7 @@ void displayTrims(uint8_t phase)
 
     if (vert[i]) {
 #if !defined(HARDWARE_TRIMS)
-      ym = 61;
+      ym = 31;
       if (trimSelection.curStickIdx == i) {
         lcdDrawSolidVerticalLine(xm, ym - TRIM_LEN, TRIM_LEN * 2);
         if (i != 2 || !g_model.thrTrim) {
@@ -210,7 +210,7 @@ void displayTrims(uint8_t phase)
     }
     else {
 #if !defined(HARDWARE_TRIMS)
-      ym = 92;
+      ym = 60;
       if (trimSelection.curStickIdx == i) {
         lcdDrawSolidHorizontalLine(xm - TRIM_LEN, ym,   TRIM_LEN * 2);
         lcdDrawSolidHorizontalLine(xm - TRIM_LEN, ym - 1, TRIM_LEN * 2);

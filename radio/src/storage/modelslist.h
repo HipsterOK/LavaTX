@@ -142,6 +142,6 @@ protected:
   FIL file;
 };
 
-extern ModelsList modelslist;
+extern ModelsList *modelslist;
 
 #endif // _MODELSLIST_H_

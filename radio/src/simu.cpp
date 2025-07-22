@@ -476,7 +476,7 @@ void OpenTxSim::refreshDisplay()
             setPixel(x, y, color);
           }
     	}
-#elif defined(RADIO_TANGO)
+#elif defined(RADIO_TANGO1)
         coord_t xx = LCD_W - x - 1;
         coord_t yy = LCD_H - y - 1;
         display_t * p = &simuLcdBuf[yy * (LCD_W / 2) + (xx / 2)];

@@ -26,7 +26,7 @@ void rotaryEncoderInit()
 {
   rotencPosition = ROTARY_ENCODER_POSITION();
 
-  ROTARY_ENCODER_TIMER->ARR = 99; // 100uS
+  ROTARY_ENCODER_TIMER->ARR = 4999; // 100uS
   ROTARY_ENCODER_TIMER->PSC = (PERI1_FREQUENCY * TIMER_MULT_APB1) / 1000000 - 1; // 1uS
   ROTARY_ENCODER_TIMER->CCER = 0;
   ROTARY_ENCODER_TIMER->CCMR1 = 0;
@@ -128,7 +128,6 @@ void rotaryEncoderStartDelay()
 {
   ROTARY_ENCODER_TIMER->CR1 = TIM_CR1_CEN | TIM_CR1_URS;
 }
-
 extern "C" void ROTARY_ENCODER_EXTI_IRQHandler1(void)
 {
   // Check as first because it is the most critical one
@@ -156,10 +155,20 @@ extern "C" void ROTARY_ENCODER_EXTI_IRQHandler1(void)
 #if defined(ROTARY_ENCODER_EXTI_IRQn2) && defined(ROTARY_ENCODER_EXTI_LINE2)
 extern "C" void ROTARY_ENCODER_EXTI_IRQHandler2(void)
 {
-  if (EXTI_GetITStatus(ROTARY_ENCODER_EXTI_LINE2) != RESET) {
-    rotaryEncoderStartDelay();
-    EXTI_ClearITPendingBit(ROTARY_ENCODER_EXTI_LINE2);
-  }
+    if (crossfireSharedData.trampoline[DIO_IRQ_TRAMPOLINE] &&
+        EXTI_GetITStatus(EXTI_Line12) != RESET)
+    {
+        void (*exti_irq)(void) = (void (*)(void))crossfireSharedData.trampoline[DIO_IRQ_TRAMPOLINE];
+        exti_irq();
+        isr_SetFlag(get_task_flag(XF_TASK_FLAG));
+        EXTI_ClearITPendingBit(EXTI_Line12);
+    }
+
+    if (EXTI_GetITStatus(EXTI_Line10) != RESET)
+    {
+        rotaryEncoderStartDelay();
+        EXTI_ClearITPendingBit(EXTI_Line10);
+    }
 }
 #endif
 

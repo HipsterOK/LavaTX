@@ -216,7 +216,7 @@ void runPopupWarning(event_t event)
     case WARNING_TYPE_WAIT:
       return;
 
-#if defined(RADIO_TANGO)
+#if defined(RADIO_TANGO1)
     case WARNING_TYPE_INFO:
       lcdDrawText(WARNING_LINE_X, WARNING_LINE_Y+5*FH, STR_OK);
       break;
