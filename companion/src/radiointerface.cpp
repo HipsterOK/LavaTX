@@ -215,7 +215,7 @@ bool readEeprom(const QString & filename, ProgressWidget * progress)
     QString path = findMassstoragePath("EEPROM.BIN");
     if (path.isEmpty()) {
       // On previous OpenTX we called the EEPROM file "TARANIS.BIN" :(
-      path = findMassstoragePath("TARANIS.BIN");
+      path = findMassstoragePath("FIRMWARE.BIN");
     }
     if (path.isEmpty()) {
       // Mike's bootloader calls the EEPROM file "ERSKY9X.BIN" :(
@@ -250,7 +250,7 @@ bool writeEeprom(const QString & filename, ProgressWidget * progress)
   QString path = findMassstoragePath("EEPROM.BIN");
   if (path.isEmpty()) {
     // On previous OpenTX we called the EEPROM file "TARANIS.BIN" :(
-    path = findMassstoragePath("TARANIS.BIN");
+    path = findMassstoragePath("FIRMWARE.BIN");
   }
   if (path.isEmpty()) {
     // Mike's bootloader calls the EEPROM file "ERSKY9X.BIN" :(

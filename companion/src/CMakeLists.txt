@@ -97,7 +97,8 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WARNING_FLAGS}")
 
-use_cxx11()  # ensure gnu++11 in CXX_FLAGS with CMake < 3.1
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(
   ${CMAKE_BINARY_DIR}

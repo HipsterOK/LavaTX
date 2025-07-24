@@ -353,6 +353,8 @@ GPIO_Init(GPIOA, &GPIO_InitStruct);
   BACKLIGHT_ENABLE();
 #endif
   lcdInit(); // delaysInit() must be called before
+  lcdClear();
+lcdRefresh();
   audioInit();
   init2MhzTimer();
   init5msTimer();

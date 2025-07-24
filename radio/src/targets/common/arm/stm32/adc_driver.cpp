@@ -19,6 +19,9 @@
  */
 
 #include "opentx.h"
+#include "hall90393.h"
+
+#define DEADZONE 3500
 
 #if defined(SIMU)
   // not needed
@@ -252,33 +255,56 @@ bool adcSingleRead()
 
   return i != ADC_DMA_MAX_LOOP;
 }
+static inline int16_t applyDeadzone(int16_t val) {
+    return (val > -DEADZONE && val < DEADZONE) ? 0 : val;
+}
+
+// === Константы фильтра и коррекции ===
+#define STICK_JITTER   4        // Порог дребезга (можно 2-4)
+#define STICK_DEADBAND ((int)(0.07f * 2048)) // ≈143    
+#define K_CROSS_L      0.08f    // Подбирай под свой магнит
+#define K_CROSS_R      0.08f
 
 void adcRead()
 {
-  uint16_t temp[NUM_ANALOGS] = { 0 };
+    hall90393_lazy_init();
 
-  for (int i = 0; i < 4; i++) {
-    while (!adcSingleRead());
-    for (uint8_t x=FIRST_ANALOG_ADC; x<NUM_ANALOGS; x++) {
-      uint16_t val = adcValues[x];
-#if defined(JITTER_MEASURE)
-      if (JITTER_MEASURE_ACTIVE()) {
-        rawJitter[x].measure(val);
-      }
-#endif
-      temp[x] += val;
+    int16_t x1, y1, z1, x2, y2, z2;
+    hall90393_read_xyz(1, &x1, &y1, &z1);    // Левый стик
+    hall90393_read_xyz(2, &y2, &x2, &z2);    // Правый стик
+
+    // --- Кросс-коррекция осей ---
+    float fx1 = x1 - K_CROSS_L * y1;
+    float fy1 = y1 - K_CROSS_L * x1;
+    float fx2 = -x2 - K_CROSS_R * y2;
+    float fy2 = -y2 - K_CROSS_R * x2;
+
+    int16_t raw[4] = {
+        (int16_t)fx1,
+        (int16_t)fy1,
+        (int16_t)fx2,
+        (int16_t)fy2
+    };
+
+    static int inited = 0;
+    static int16_t prevVal[4] = {0, 0, 0, 0};
+
+    if (!inited) {
+        for (int i = 0; i < 4; ++i)
+            prevVal[i] = raw[i];
+        inited = 1;
     }
-  }
 
-  for (uint8_t x=FIRST_ANALOG_ADC; x<NUM_ANALOGS; x++) {
-    adcValues[x] = temp[x] >> 2;
-  }
-
-#if NUM_PWMSTICKS > 0
-  if (STICKS_PWM_ENABLED()) {
-    sticksPwmRead(adcValues);
-  }
-#endif
+    for (int i = 0; i < 4; ++i) {
+        // DEADZONE 5% (мёртвая зона ±102)
+        if (abs(raw[i]) < STICK_DEADBAND) {
+            prevVal[i] = 0;
+        } else if (abs(raw[i] - prevVal[i]) > STICK_JITTER) {
+            prevVal[i] = raw[i];
+        }
+        s_anaFilt[i] = prevVal[i];
+        crossfireSharedData.sticks[i] = prevVal[i];
+    }
 }
 
 #if defined(PCBX10)
