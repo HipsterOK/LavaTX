@@ -28,7 +28,7 @@ if (PCB STREQUAL TANGO)
   set(LCD_DEPTH 1)
   set(LUA_EXPORT lua_export_tango)
   set(XJT OFF CACHE BOOL "Disable XJT")
-  add_definitions(-DRADIO_LAVA_ONE)
+  add_definitions(-DRADIO_TANGO)
   add_definitions(-DSTM32F40_41xxx -DPCBTANGO)
 elseif(PCB STREQUAL MAMBO)
   set(FLAVOUR mambo)
@@ -165,6 +165,8 @@ set(TARGET_SRC
   ../common/arm/stm32/mixer_scheduler_driver.cpp
   ../common/arm/stm32/hall90393.cpp
   malloc.c
+  keys_driver.cpp
+  telemetry_driver.cpp
   )
 
 set(FIRMWARE_TARGET_SRC

@@ -433,7 +433,39 @@
 #define LCD_DMA_FLAG_INT                DMA_HIFCR_CTCIF5
 #define LCD_SPI                         SPI1
 #define LCD_DMA_CHANNEL                 DMA_Channel_3  // Channel 3 — SPI1_TX
-#elif defined(RADIO_MAMBO)
+#endif
+#if defined(RADIO_LAVA_ONE)
+#define LCD_RCC_AHB1Periph (RCC_AHB1Periph_GPIOA)
+#define LCD_RCC_APB2Periph RCC_APB2Periph_SPI1 // ! для SPI1 (а не APB1)
+
+#define LCD_SPI_GPIO GPIOA
+#define LCD_MOSI_GPIO_PIN GPIO_Pin_7 // PA.7
+#define LCD_MOSI_GPIO_PinSource GPIO_PinSource7
+
+#define LCD_CLK_GPIO_PIN GPIO_Pin_5 // PA.5
+#define LCD_CLK_GPIO_PinSource GPIO_PinSource5
+
+#define LCD_CS_GPIO GPIOA
+#define LCD_CS_GPIO_PIN GPIO_Pin_2 // PA.2
+
+#define LCD_DC_GPIO GPIOA
+#define LCD_DC_GPIO_PIN GPIO_Pin_1 // PA.1
+
+#define LCD_RST_GPIO GPIOA
+#define LCD_RST_GPIO_PIN GPIO_Pin_0 // PA.0
+
+#define LCD_SPI SPI1
+#define LCD_GPIO_AF GPIO_AF_SPI1
+
+#define LCD_DMA                         DMA2
+#define LCD_DMA_Stream                  DMA2_Stream5   // !!! Было Stream3, меняем на 5 !!!
+#define LCD_DMA_Stream_IRQn             DMA2_Stream5_IRQn
+#define LCD_DMA_Stream_IRQHandler       DMA2_Stream5_IRQHandler
+#define LCD_DMA_FLAGS                   (DMA_HIFCR_CTCIF5 | DMA_HIFCR_CHTIF5 | DMA_HIFCR_CTEIF5 | DMA_HIFCR_CDMEIF5 | DMA_HIFCR_CFEIF5)
+#define LCD_DMA_FLAG_INT                DMA_HIFCR_CTCIF5
+#define LCD_DMA_CHANNEL                 DMA_Channel_3  // Channel 3 — SPI1_TX
+#endif
+#if defined(RADIO_MAMBO)
 #define LCD_RCC_AHB1Periph (RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_DMA1)
 #define LCD_RCC_APB1Periph RCC_APB1Periph_SPI3
 #define LCD_SPI_GPIO GPIOB

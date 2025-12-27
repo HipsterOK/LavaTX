@@ -33,19 +33,7 @@ void ledInit(void)
   GPIO_Init(BACKLIGHT_GPIO, &GPIO_InitStructure);
 }
 
-void backlightDisable(void)
-{
-  GPIO_ResetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
-}
-
-void backlightEnable(uint8_t level)
-{
-  if (level > 0) {
-    GPIO_SetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
-  } else {
-    GPIO_ResetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
-  }
-}
+// backlight functions moved to backlight_driver.cpp
 
 void ledOff()
 {
