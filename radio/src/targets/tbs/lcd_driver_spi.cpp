@@ -23,8 +23,8 @@
 
 #define SPI_TIMEOUT 10000000UL
 
-bool lcd_on = false;
-bool lcd_busy = false;
+volatile bool lcd_on = false;
+volatile bool lcd_busy = false;
 // --- SPI write byte ---
 static void spiWrite(uint8_t byte)
 {
@@ -300,7 +300,10 @@ void lcdAdjustContrast(uint8_t val)
 }
 void lcdRefreshWait(void)
 {
-    // Empty implementation
+    while (lcd_busy)
+    {
+        // Wait for LCD to be ready
+    }
 }
 
 void lcdSetRefVolt(uint8_t val)
