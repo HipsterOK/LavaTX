@@ -436,13 +436,21 @@ void boardOff()
 
   // Бесконечный цикл ожидания кнопки
   // Система остается активной, но в минимальном режиме
+  TRACE("ENTERING POWER OFF POLLING MODE\n");
+  static int pollCount = 0;
+
   while (1)
   {
-    // Проверяем кнопку каждые 10мс
+    pollCount++;
+    if (pollCount % 100 == 0) {
+      TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
+    }
+
+    // Проверяем кнопку каждые ~1мс
     if (pwrPressed())
     {
       // Кнопка нажата - просыпаемся
-      TRACE("WAKEUP: Power button pressed\n");
+      TRACE("WAKEUP: Power button pressed! (poll: %d)\n", pollCount);
 
       // Включаем все обратно
       pwrOn();
