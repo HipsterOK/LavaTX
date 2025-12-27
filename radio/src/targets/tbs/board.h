@@ -256,7 +256,7 @@ extern uint8_t g_trimState;
 #define DEFAULT_POTS_CONFIG           (POT_WITH_DETENT << 2)+ (POT_WITH_DETENT << 0)
 #define DEFAULT_SLIDERS_CONFIG        SLIDER_NONE
 
-#define NUM_SWITCHES                        6
+#define NUM_SWITCHES                        4
 #define STORAGE_NUM_SWITCHES_POSITIONS  (STORAGE_NUM_SWITCHES * 3)
 #endif
 void keysInit();
