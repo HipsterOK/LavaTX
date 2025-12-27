@@ -386,7 +386,7 @@ void boardOff()
 {
   static int powerOffCount = 0;
   powerOffCount++;
-  TRACE("power off #%d\n", powerOffCount);
+  TRACE("=== BOARD OFF STARTED #%d ===\n", powerOffCount);
 
   // Очищаем дисплей перед выключением
   lcdClear();
@@ -433,53 +433,33 @@ void boardOff()
   lcdClear();
   lcdOff();
 
-  // Бесконечный цикл ожидания кнопки
-  // Система остается активной, но в минимальном режиме
-  TRACE("ENTERING POWER OFF POLLING MODE\n");
-  static int pollCount = 0;
+  // Временное решение: автоматическое включение через 3 секунды
+  // для тестирования работы PB12
+  TRACE("POWER OFF: Waiting 3 seconds then auto power on...\n");
 
-  while (1)
-  {
-    pollCount++;
-    if (pollCount % 100 == 0) {
-      TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
-    }
+  // Ждем 3 секунды (3 * 1000000 циклов при ~1MHz)
+  volatile uint32_t delay = 3000000;
+  while (delay--) { __ASM volatile("nop"); }
 
-    // Проверяем кнопку с debounce
-    static int pressCount = 0;
-    if (pwrPressed())
-    {
-      pressCount++;
-      if (pressCount > 5) {  // debounce - 5 последовательных чтений
-        // Кнопка нажата - просыпаемся
-        TRACE("WAKEUP: Power button pressed! (poll: %d, debounce: %d)\n", pollCount, pressCount);
-        pressCount = 0;
+  TRACE("Auto power on sequence...\n");
 
-        // Очищаем дисплей перед перезагрузкой
-        lcdClear();
+  // Очищаем дисплей перед перезагрузкой
+  lcdClear();
 
-        // Включаем питание TPS63060
-        pwrOn();
+  // Включаем питание TPS63060
+  pwrOn();
 
-        // Ждем пока TPS63060 включится (нужно время для стабилизации питания)
-        volatile uint32_t delay = 50000; // увеличенная задержка для TPS63060
-        while (delay--) { __ASM volatile("nop"); }
+  // Ждем пока TPS63060 включится
+  delay = 50000; // задержка для TPS63060
+  while (delay--) { __ASM volatile("nop"); }
 
-        TRACE("PWR_ON activated, resetting system...\n");
+  TRACE("PWR_ON activated, resetting system...\n");
 
-        // Перезагружаемся для нормальной работы
-        NVIC_SystemReset();
-      }
-    } else {
-      // Кнопка не нажата - сбрасываем счетчик debounce
-      pressCount = 0;
-    }
+  // Перезагружаемся для нормальной работы
+  NVIC_SystemReset();
 
-    // Короткая пауза
-    volatile uint32_t delay = 1000;
-    while (delay--) { __ASM volatile("nop"); }
-
-    // Сбрасываем watchdog
+  // Этот код никогда не выполнится, но нужен для компилятора
+  while (1) {
     WDG_RESET();
   }
 
