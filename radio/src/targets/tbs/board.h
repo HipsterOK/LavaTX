@@ -1,5 +1,5 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) LavaTX
  *
  * Based on code named
  *   th9x - http://code.google.com/p/th9x
@@ -40,10 +40,12 @@ void rotaryEncoderCheck();
 #include "STM32F4xx_DSP_StdPeriph_Lib_V1.4.0/Libraries/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_fmc.h"
 #endif
 
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
 #define MY_DEVICE_NAME                  "Lava One"
 #elif defined(RADIO_MAMBO)
 #define MY_DEVICE_NAME                  "Mambo"
+#elif defined(RADIO_TANGO)
+#define MY_DEVICE_NAME                  "Tango"
 #endif
 #define FLASHSIZE                       0xC0000
 #define BOOTLOADER_SIZE                 0xC000
@@ -71,12 +73,21 @@ void rotaryEncoderCheck();
 extern uint16_t sessionTimer;
 #if defined(RADIO_MAMBO)
 static const uint8_t switchPosition[][2] = {{0,0}, {0,1}, {1,0}, {1,1}, {1,2}, {0,2}};
+#elif defined(RADIO_LAVA_ONE)
+static const uint8_t switchPosition[][2] = {
+  {0,0}, // SA — слева, верх
+  {0,1}, // SB — слева, ниже
+  {1,0}, // SC — справа, верх
+  {1,1}, // SD — справа, ниже
+};
 #elif defined(RADIO_TANGO)
 static const uint8_t switchPosition[][2] = {
   {0,0}, // SA — слева, верх
   {0,1}, // SB — слева, ниже
   {1,0}, // SC — справа, верх
   {1,1}, // SD — справа, ниже
+  {1,2}, // SE — переключатель
+  {0,2}, // SF — переключатель
 };
 #endif
 
@@ -91,7 +102,7 @@ void init5msTimer();
 void check_telemetry_exti();
 
 // PCBREV driver
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
 enum {
   PCBREV_Tango2_Unknown = 0,
   PCBREV_Tango2_V1,
@@ -103,6 +114,13 @@ enum {
   PCBREV_Mambo_Unknown = 0,
   PCBREV_Mambo_V1,
   PCBREV_Mambo_V2,
+};
+#elif defined(RADIO_TANGO)
+enum {
+  PCBREV_Tango2_Unknown = 0,
+  PCBREV_Tango2_V1,
+  PCBREV_Tango2_V2,
+  PCBREV_Tango2_V3,
 };
 #endif
 
@@ -242,8 +260,8 @@ enum EnumSwitchesPositions
   SW_SF2,
 };
 
-#if defined(RADIO_TANGO)
-#define NUM_SWITCHES                    4
+#if defined(RADIO_LAVA_ONE)
+#define NUM_SWITCHES                    6
 #define STORAGE_NUM_SWITCHES            NUM_SWITCHES
 #define DEFAULT_SWITCH_CONFIG           (SWITCH_TOGGLE << 10) + (SWITCH_TOGGLE << 8) + (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_3POS << 0)
 
@@ -258,7 +276,15 @@ extern uint8_t g_trimState;
 
 #define NUM_SWITCHES                        6
 #define STORAGE_NUM_SWITCHES_POSITIONS  (STORAGE_NUM_SWITCHES * 3)
+#elif defined(RADIO_TANGO)
+#define NUM_SWITCHES                    6
+#define STORAGE_NUM_SWITCHES            NUM_SWITCHES
+#define DEFAULT_SWITCH_CONFIG           (SWITCH_TOGGLE << 10) + (SWITCH_TOGGLE << 8) + (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_3POS << 0)
+
+#define STORAGE_NUM_SWITCHES_POSITIONS  (STORAGE_NUM_SWITCHES * 3)
 #endif
+extern uint8_t g_trimEditMode;
+extern uint8_t g_trimState;
 void keysInit();
 uint8_t keyState(uint8_t index);
 uint32_t switchState(uint8_t index);
@@ -307,7 +333,7 @@ enum Analogs {
   NUM_ANALOGS
 };
 
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
 #define NUM_POTS                        0
 #define NUM_XPOTS                       0
 #define NUM_SLIDERS                     0
@@ -332,6 +358,19 @@ enum Analogs {
 
 #define NUM_MOUSE_ANALOGS               0
 #define STORAGE_NUM_MOUSE_ANALOGS       0
+
+#define NUM_TRIMS_KEYS                  8
+#define STICKS_PWM_ENABLED()            false
+#elif defined(RADIO_TANGO)
+#define NUM_POTS                        0
+#define NUM_XPOTS                       0
+#define NUM_SLIDERS                     0
+#define NUM_TRIMS                       4
+#define NUM_MOUSE_ANALOGS               0
+#define STORAGE_NUM_MOUSE_ANALOGS       0
+
+#define STORAGE_NUM_POTS                0
+#define STORAGE_NUM_SLIDERS             0
 
 #define NUM_TRIMS_KEYS                  8
 #define STICKS_PWM_ENABLED()            false
@@ -382,11 +421,14 @@ uint16_t getBatteryVoltage();   // returns current battery voltage in 10mV steps
 #define BATTERY_TYPE_FIXED
 
 #define BATT_CALIB_OFFSET             5
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
 #define BATT_SCALE                    (3.10f)
 #define BATT_SCALE2                   (3.10f)
 #elif defined(RADIO_MAMBO)
 #define BATT_SCALE                    (4.55f)
+#elif defined(RADIO_TANGO)
+#define BATT_SCALE                    (3.10f)
+#define BATT_SCALE2                   (3.10f)
 #endif
 // BATT_SCALE = 12-bit max value * pd / ANALOG_MULTIPLIER / vref / multiplication
 //            = 4095 * 2/3 / 2 / vref / 100
@@ -462,7 +504,7 @@ uint32_t pwrPressedDuration();
   #define backlightEnable(level)
   #define BACKLIGHT_ENABLE()
 #else
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
 // Простая подсветка кнопок — включается/выключается без PWM
 void backlightInit(void);
 void backlightDisable(void);
@@ -473,6 +515,12 @@ void backlightInit(void);
 void backlightDisable(void);
 uint8_t isBacklightEnabled(void);
 void backlightEnable(uint8_t level);
+#elif defined(RADIO_TANGO)
+// Простая подсветка кнопок — включается/выключается без PWM
+void backlightInit(void);
+void backlightDisable(void);
+void backlightEnable(uint8_t level);
+uint8_t isBacklightEnabled(void);
 #endif
 
   #define BACKLIGHT_DISABLE()             backlightDisable()
@@ -484,7 +532,7 @@ void usbJoystickUpdate();
 #define USB_FIRMWARE_DEFAULT_MODE       USB_AGENT_MODE
 #define USB_NAME                        "Lava"
 #define USB_MANUFACTURER                'L', 'A', 'V', 'A', ' ', ' ', ' ', ' '  /* 8 bytes */
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
 #define USB_PRODUCT                     'O', 'n', 'e', ' ', ' ', ' ', ' ', ' '  /* 8 Bytes */
 #else
 #define USB_PRODUCT                     'M', 'a', 'm', 'b', 'o', ' ', ' ', ' '  /* 8 Bytes */
@@ -541,14 +589,14 @@ void extmoduleSendInvertedByte(uint8_t byte);
 #define IS_EXTERNAL_MODULE_ON()       (GPIO_ReadInputDataBit(EXTMODULE_PWR_GPIO, EXTMODULE_PWR_GPIO_PIN) == Bit_SET)
 
 // PCBREV driver
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
   #define IS_PCBREV_01()                (hardwareOptions.pcbrev == PCBREV_Tango2_V1)
   #define IS_PCBREV_02()                (hardwareOptions.pcbrev == PCBREV_Tango2_V2)
   #define IS_PCBREV_03()                (hardwareOptions.pcbrev == PCBREV_Tango2_V3)
 #endif
 
 // Charger
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
   #define IS_CHARGING_STATE()         (usbPlugged() && GPIO_ReadInputDataBit( CHARGER_STATE_GPIO, CHARGER_STATE_GPIO_PIN ) == Bit_RESET)
   #define IS_CHARGING_FAULT()         (usbPlugged() && GPIO_ReadInputDataBit( CHARGER_FAULT_GPIO, CHARGER_FAULT_GPIO_PIN ) == Bit_RESET)
 #else
@@ -604,7 +652,7 @@ bool usbChargerLed();
 #endif
 
 // Led driver
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
   #define CHARGING_LEDS
   void ledInit(void);
   void ledOff(void);
@@ -621,10 +669,26 @@ bool usbChargerLed();
   #endif
 #elif defined(RADIO_MAMBO)
   #define ledOff()
+#elif defined(RADIO_TANGO)
+  #define CHARGING_LEDS
+  void ledInit(void);
+  void ledOff(void);
+  void ledRed(void);
+  void ledBlue(void);
+  void ledGreen(void);
+  void ledWhite(void);
+  #if defined(CHARGING_LEDS)
+    #define LED_CHARGING_IN_PROGRESS()    ledRed()
+    #define LED_CHARGING_DONE()           ledGreen()
+  #else
+    #define LED_CHARGING_IN_PROGRESS()
+    #define LED_CHARGING_DONE()
+  #endif
+  #define ledPowerOn()    ledGreen()
 #endif
 
 // LCD driver
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
   #define CHARGING_ANIMATION
   #define LCD_W                           128
   #define LCD_H                           64
@@ -642,11 +706,17 @@ bool usbChargerLed();
   #define LCD_H                           64
   #define LCD_DEPTH                       1
   #define IS_LCD_RESET_NEEDED()           true
+#elif defined(RADIO_TANGO)
+  #define CHARGING_ANIMATION
+  #define LCD_W                           128
+  #define LCD_H                           64
+  #define LCD_DEPTH                       1
+  #define IS_LCD_RESET_NEEDED()           true
   #define LCD_CONTRAST_MIN                0
   #define LCD_CONTRAST_MAX                255
   #define LCD_CONTRAST_DEFAULT            159
   void lcdInit();
-  #define lcdOn()
+  void lcdOn(void);
   void lcdInitFinish();
   void lcdOff();
 #endif

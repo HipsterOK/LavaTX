@@ -8,7 +8,7 @@ void pwrInit()
   // GPIOB уже включен в SystemInit(), но включаем для надежности
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-  // --- PWR_ON (PB12) — индикатор включения (согласно таблице пользователя) ---
+  // --- PWR_ON (PB12) — управление EN пином TPS63060 ---
   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;

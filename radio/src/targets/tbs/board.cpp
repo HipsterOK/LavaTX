@@ -413,8 +413,8 @@ void boardOff()
   ledOff();
 #endif
 
-  // ПРОСТОЕ РЕШЕНИЕ: polling PWR_SW без управления питанием
-  // PWR_ON остается HIGH всегда
+  // Отключаем питание TPS63060 через PWR_ON (PB12)
+  pwrOff();
 
   // Полностью выключаем все LED и подсветку
   BACKLIGHT_DISABLE();
@@ -458,12 +458,14 @@ void boardOff()
         // Очищаем дисплей перед перезагрузкой
         lcdClear();
 
-        // Включаем все обратно
+        // Включаем питание TPS63060
         pwrOn();
 
-        // Небольшая задержка
-        volatile uint32_t delay = 10000;
+        // Ждем пока TPS63060 включится (нужно время для стабилизации питания)
+        volatile uint32_t delay = 50000; // увеличенная задержка для TPS63060
         while (delay--) { __ASM volatile("nop"); }
+
+        TRACE("PWR_ON activated, resetting system...\n");
 
         // Перезагружаемся для нормальной работы
         NVIC_SystemReset();
