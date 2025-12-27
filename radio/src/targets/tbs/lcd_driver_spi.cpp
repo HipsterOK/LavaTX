@@ -300,9 +300,11 @@ void lcdAdjustContrast(uint8_t val)
 }
 void lcdRefreshWait(void)
 {
-    while (lcd_busy)
+    // Simple wait without DMA complexity
+    volatile uint32_t delay = 1000;
+    while (delay--)
     {
-        // Wait for LCD to be ready
+        __asm("nop");
     }
 }
 
