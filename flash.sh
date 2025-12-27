@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Скрипт для заливки прошивки OpenTX на TBS Tango/Mambo
+# Скрипт для заливки прошивки LavaTX на TBS Tango/Mambo
 # Использует ST-Link
 
 set -e  # Выход при ошибке
@@ -9,7 +9,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
 FIRMWARE_BIN="$BUILD_DIR/firmware.bin"
 
-echo "=== Заливка прошивки OpenTX на TBS ==="
+echo "=== Заливка прошивки LavaTX на TBS ==="
 
 # Проверка наличия файла прошивки
 if [ ! -f "$FIRMWARE_BIN" ]; then

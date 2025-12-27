@@ -1,5 +1,5 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) LavaTX
  *
  * Based on code named
  *   th9x - http://code.google.com/p/th9x
@@ -78,7 +78,7 @@ void intmoduleStop()
 {
 }
 
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
 #define VBATT_W (LCD_W - 40)
 #define VBATT_H (45)
 #define VBATT_X (((LCD_W - VBATT_W) / 2) - 2)
@@ -265,7 +265,7 @@ static void showBatteryDebugPopup()
 void boardInit()
 {
   bool skipCharging = false;
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
                              KEYS_RCC_AHB1Periph | RCC_AHB1Periph_GPIOA | // LCD GPIO на PA
                              AUDIO_RCC_AHB1Periph |
@@ -333,7 +333,7 @@ void boardInit()
 #if defined(USB_CHARGER)
   usbChargerInit();
 #endif
-  #if defined(RADIO_TANGO)
+  #if defined(RADIO_LAVA_ONE)
       ledPowerOn();   // зелёный LED: Пульт включён
   #endif
   __enable_irq();
@@ -488,7 +488,7 @@ uint16_t getBatteryVoltage()
 {
  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
   float batt_scale = 0;
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
   if (IS_PCBREV_01())
     batt_scale = BATT_SCALE;
   else 
@@ -565,7 +565,7 @@ void trampolineInit(void)
 void loadDefaultRadioSettings(void)
 {
   // this is to reset incorrect radio settings. should be removed later.
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
   g_eeGeneral.backlightMode = g_eeGeneral.backlightMode < e_backlight_mode_keys ? e_backlight_mode_keys : g_eeGeneral.backlightMode;
 #endif
   g_eeGeneral.lightAutoOff = g_eeGeneral.lightAutoOff < BACKLIGHT_TIMEOUT_MIN ? 6 : g_eeGeneral.lightAutoOff;
@@ -777,7 +777,7 @@ extern "C"
         break;
     }
 
-    hf_printf("\r\n\n***OpenTX Hard Fault Handler Debug Printing***\r\n");
+    hf_printf("\r\n\n***LavaTX Hard Fault Handler Debug Printing***\r\n");
     hf_printf("R0\t\t= 0x%.8x\r\n", stacked_r0);
     hf_printf("R1\t\t= 0x%.8x\r\n", stacked_r1);
     hf_printf("R2\t\t= 0x%.8x\r\n", stacked_r2);

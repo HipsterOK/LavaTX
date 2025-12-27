@@ -40,7 +40,7 @@ void pwrOff()
 
 bool pwrPressed()
 {
-  // LOW активный для TBS TANGO
+  // LOW активный для TBS Lava One
   return GPIO_ReadInputDataBit(PWR_SWITCH_GPIO, PWR_SWITCH_GPIO_PIN) == Bit_RESET;
 }
 
@@ -50,7 +50,7 @@ void pwrResetHandler()
   __ASM volatile("nop");
   __ASM volatile("nop");
 
-  // Для TBS TANGO: включаем только индикатор питания
+  // Для TBS Lava One: включаем только индикатор питания
   // Питание управляется аппаратно через кнопку Power_SW (PA3)
   pwrOn();
 }
