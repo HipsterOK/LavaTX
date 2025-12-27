@@ -264,6 +264,19 @@ static void showBatteryDebugPopup()
 
 void boardInit()
 {
+  // Раннее включение LED для индикации запуска системы
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE); // Для LED на PE8-PE12
+
+  // Включаем белую подсветку кнопок (PE12) для индикации запуска
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_Init(GPIOE, &GPIO_InitStructure);
+  GPIO_SetBits(GPIOE, GPIO_Pin_12); // Подсветка кнопок - белая
+
   bool skipCharging = false;
 #if defined(RADIO_TANGO)
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
@@ -338,6 +351,21 @@ void boardInit()
   #endif
   __enable_irq();
 
+  // Инициализация всех LED для индикации
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_11 | GPIO_Pin_12;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_Init(GPIOE, &GPIO_InitStructure);
+
+  // Выключаем все LED кроме подсветки (PE12 уже включена выше)
+  GPIO_ResetBits(GPIOE, GPIO_Pin_8);  // LED_LOW_BATT PE8 - красный
+  GPIO_ResetBits(GPIOE, GPIO_Pin_9);  // LED_PWR_ON PE9 - зеленый
+  GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10 - зеленый
+  GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11 - красный
+  // GPIO_SetBits(GPIOE, GPIO_Pin_12); // Подсветка уже включена
+
   hardwareOptions.pcbrev = crsfGetHWID() & ~HW_ID_MASK;
 
 #if defined(RTCLOCK) && !defined(COPROCESSOR)
@@ -388,6 +416,9 @@ void boardOff()
   powerOffCount++;
   TRACE("=== BOARD OFF STARTED #%d ===\n", powerOffCount);
 
+  // Включаем красный LED (низкий заряд) - PE8 для индикации выключения
+  GPIO_SetBits(GPIOE, GPIO_Pin_8);  // LED_LOW_BATT PE8 - красный
+
   // Очищаем дисплей перед выключением
   lcdClear();
 
@@ -436,6 +467,9 @@ void boardOff()
   // Временное решение: автоматическое включение через 3 секунды
   // для тестирования работы PB12
   TRACE("POWER OFF: Waiting 3 seconds then auto power on...\n");
+
+  // Включаем зеленый LED (пульт включен) - PE9
+  GPIO_SetBits(GPIOE, GPIO_Pin_9);  // LED_PWR_ON PE9 - зеленый
 
   // Ждем 3 секунды (3 * 1000000 циклов при ~1MHz)
   volatile uint32_t delay = 3000000;
