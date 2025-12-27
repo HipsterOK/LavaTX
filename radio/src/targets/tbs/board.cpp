@@ -369,9 +369,8 @@ void boardInit()
 #endif
 
 #if defined(PWR_BUTTON_PRESS)
-  // Включаем питание при любом запуске системы
-  // Это нужно для нормального включения кнопкой питания
-  pwrOn();
+  // PWR_ON будет установлен в HIGH в конце boardInit()
+  // когда система полностью готова
 #endif
 
   if (!UNEXPECTED_SHUTDOWN())
@@ -381,6 +380,10 @@ void boardInit()
   {
     runPwrOffCharging();
   }
+
+  // Система полностью готова - устанавливаем PWR_ON в HIGH
+  // Это сигнал для аппаратной логики питания
+  pwrOn();
 }
 
 void boardOff()
@@ -424,7 +427,8 @@ void boardOff()
   // if (usbPlugged())
   //   NVIC_SystemReset();
 
-  pwrOff(); // Выключаем индикатор питания
+  // pwrOff(); // НЕ выключаем индикатор питания при выключении
+  // Оставляем PWR_ON в HIGH для аппаратной логики питания
 
   // disable interrupts
   __disable_irq();

@@ -257,8 +257,8 @@ void SystemInit(void)
   // PUPDR12 = 10 (pull-down) — на случай, если кто-то переведёт ножку во вход
   GPIOB->PUPDR   &= ~(0x3u << (12*2));
   GPIOB->PUPDR   |=  (0x2u << (12*2));
-  // Начальный уровень — HIGH (индикатор питания включен)
-  GPIO_SetBits(GPIOB, GPIO_Pin_12);
+  // Начальный уровень — LOW (система еще не готова)
+  GPIO_ResetBits(GPIOB, GPIO_Pin_12);
 
   /* PA3 (кнопка питания) -> Input Pull-Up, чтобы гарантировать “не нажато” по умолчанию */
   GPIOA->MODER   &= ~(0x3u << (3*2));         // input
