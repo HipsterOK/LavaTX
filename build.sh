@@ -51,14 +51,12 @@ if [ ! -f "$FIRMWARE_BIN" ]; then
 fi
 
 echo "Прошивка собрана успешно! Размер: $(stat -c%s "$FIRMWARE_BIN") байт"
-
-echo "5. Заливка прошивки..."
-echo "Убедитесь, что:"
-echo "  - ST-Link подключен к компьютеру"
-echo "  - ST-Link подключен к плате TBS"
-echo "  - Плата TBS в режиме программирования (BOOT)"
-
-st-flash --reset write "$FIRMWARE_BIN" 0x08000000
-
-echo "Готово! Прошивка успешно залита."
-echo "Перезагрузите устройство и выньте его из режима программирования."
+echo "Файл прошивки: $FIRMWARE_BIN"
+echo ""
+echo "Для заливки выполните:"
+echo "  st-flash --reset write $FIRMWARE_BIN 0x08000000"
+echo ""
+echo "ИЛИ используйте скрипт для заливки:"
+echo "  ./flash.sh"
+echo ""
+echo "Проверьте прошивку перед заливкой!"
