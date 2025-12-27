@@ -411,105 +411,57 @@ void boardOff()
   ledOff();
 #endif
 
-  // Настраиваем PWR_SW (PA3) для пробуждения из STOP режима
-  // Включаем SYSCFG clock для EXTI
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-
-  // Настраиваем EXTI для PA3
-  SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource3);
-
-  EXTI_InitTypeDef EXTI_InitStructure;
-  EXTI_InitStructure.EXTI_Line = EXTI_Line3;
-  EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling; // Только нажатие (LOW)
-  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-  EXTI_Init(&EXTI_InitStructure);
-
-  // Настраиваем NVIC для EXTI3
-  NVIC_InitTypeDef NVIC_InitStructure;
-  NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
+  // ПРОСТОЕ РЕШЕНИЕ: Не используем глубокий сон, просто ждем кнопку
+  // Это предотвратит проблемы с STOP режимом
 
   // Выключаем питание (TPS63060)
   pwrOff();
 
-  // Ждем отпускания кнопки
-  while (pwrPressed())
-  {
-    WDG_RESET();
-  }
-
-  // Очищаем экран
-  lcdClear();
-  lcdOff();
-
-  // ПОСЛЕДНЕЕ выключение подсветки и LED перед сном
+  // Полностью выключаем все LED и подсветку
   BACKLIGHT_DISABLE();
 #if defined(CHARGING_LEDS)
   ledOff();
 #endif
 
-  // Отключаем GPIO для подсветки и LED чтобы не моргали
+  // Отключаем GPIO для подсветки и LED
   GPIO_ResetBits(GPIOE, GPIO_Pin_12); // Подсветка кнопок PE12
   GPIO_ResetBits(GPIOE, GPIO_Pin_8);  // LED_LOW_BATT PE8
   GPIO_ResetBits(GPIOE, GPIO_Pin_9);  // LED_PWR_ON PE9
   GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10
   GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11
 
-  // Отключаем тактирование GPIO чтобы предотвратить любое моргание
-  // GPIOA оставляем включенным для EXTI3 (PA3)
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, DISABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, DISABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, DISABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, DISABLE); // LED и подсветка
+  // Очищаем экран
+  lcdClear();
+  lcdOff();
 
-  // Небольшая задержка чтобы GPIO точно выключились
-  delay_ms(1);
+  // Бесконечный цикл ожидания кнопки
+  // Система остается активной, но в минимальном режиме
+  while (1)
+  {
+    // Проверяем кнопку каждые 10мс
+    if (pwrPressed())
+    {
+      // Кнопка нажата - просыпаемся
+      TRACE("WAKEUP: Power button pressed\n");
 
-  // Отключаем watchdog перед сном (чтобы не сбрасывался в STOP режиме)
-  IWDG->KR = 0xAAAA; // Reset watchdog
-  IWDG->KR = 0xCCCC; // Start watchdog (но он будет в низком потреблении)
+      // Включаем все обратно
+      pwrOn();
 
-  // Отключаем ненужную периферию для снижения потребления
-  SysTick->CTRL = 0; // turn off systick
+      // Небольшая задержка
+      volatile uint32_t delay = 10000;
+      while (delay--) { __ASM volatile("nop"); }
 
-  // Входим в STOP режим
-  PWR->CR |= PWR_CR_CWUF;     // Clear wakeup flag
-  PWR->CR &= ~PWR_CR_PDDS;    // STOP mode (не STANDBY)
-  SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+      // Перезагружаемся для нормальной работы
+      NVIC_SystemReset();
+    }
 
-  // Включаем wakeup
-  PWR->CSR |= PWR_CSR_EWUP;
+    // Короткая пауза
+    volatile uint32_t delay = 1000;
+    while (delay--) { __ASM volatile("nop"); }
 
-  __WFE(); // Входим в STOP режим, проснемся от EXTI3
-
-  // Сюда попадаем после пробуждения
-  // Восстанавливаем системные настройки
-  SystemInit();
-
-  // Переинициализируем watchdog после пробуждения
-  watchdogInit(WDG_DURATION);
-
-  // Включаем тактирование GPIO обратно (GPIOA уже включен)
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
-
-  // Включаем питание обратно
-  pwrOn();
-
-  // Небольшая задержка для стабилизации
-  volatile uint32_t delay = 10000;
-  while (delay--) { __ASM volatile("nop"); }
-
-  // TRACE("WAKEUP: System reset after wakeup");
-
-  // Перезагружаемся для нормальной работы
-  NVIC_SystemReset();
+    // Сбрасываем watchdog
+    WDG_RESET();
+  }
 
   // this function must not return!
 }
@@ -536,30 +488,7 @@ uint8_t getBoardOffState()
   return boardOffState;
 }
 
-// Обработчик прерывания от PWR_SW (PA3) для выхода из STOP режима
-extern "C" void EXTI3_IRQHandler(void)
-{
-  if (EXTI_GetITStatus(EXTI_Line3) != RESET)
-  {
-    EXTI_ClearITPendingBit(EXTI_Line3);
-
-    // Проверяем состояние PWR_SW - просыпаемся только при нажатии
-    if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_3) == Bit_RESET) {
-      // Кнопка нажата - просыпаемся
-      // TRACE("WAKEUP: PWR_SW pressed");
-
-      // Отключаем EXTI чтобы предотвратить повторные срабатывания
-      EXTI_InitTypeDef EXTI_InitStructure;
-      EXTI_InitStructure.EXTI_Line = EXTI_Line3;
-      EXTI_InitStructure.EXTI_LineCmd = DISABLE;
-      EXTI_Init(&EXTI_InitStructure);
-
-    } else {
-      // Ложное срабатывание - игнорируем
-      return;
-    }
-  }
-}
+// EXTI обработчик больше не нужен - используем polling
 
 void boardReboot2bootloader(uint32_t isNeedFlash, uint32_t HwId, uint32_t sn)
 {
