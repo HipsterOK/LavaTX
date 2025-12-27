@@ -41,7 +41,9 @@
 #define KSTATE_PAUSE                98
 #define KSTATE_KILLED               99
 
+#if !defined(HARDWARE_TRIMS)
 uint8_t g_trimEditMode = EDIT_TRIM_DISABLED;
+#endif
 
 event_t s_evt;
 struct InactivityData inactivity = {0};
