@@ -424,7 +424,7 @@ void boardOff()
   // if (usbPlugged())
   //   NVIC_SystemReset();
 
-  // pwrOff(); // ЗАКОММЕНТИРОВАНО - оставляем PWR_ON в HIGH для TPS63060
+  pwrOff(); // Выключаем индикатор питания
 
   // disable interrupts
   __disable_irq();

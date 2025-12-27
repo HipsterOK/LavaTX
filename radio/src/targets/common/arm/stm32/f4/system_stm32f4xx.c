@@ -239,6 +239,32 @@ void SystemInit(void)
   /* Disable all interrupts */
   RCC->CIR = 0x00000000;
   
+ /* === EARLY POWER LATCH CONTROL (TPS63060 EN on PB12) ===
+     Держим EN низким на старте, чтобы питание не “залипало”
+     до того, как мы полностью готовы включиться. */
+  /* Включаем тактирование GPIOA/GPIOB */
+  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN;
+  (void)RCC->AHB1ENR; // краткое чтение для синхронизации
+
+  /* PB12 -> Output, Push-Pull, Low speed, Pull-Down, начальный уровень = LOW */
+  // MODER12 = 01 (output)
+  GPIOB->MODER   &= ~(0x3u << (12*2));
+  GPIOB->MODER   |=  (0x1u << (12*2));
+  // OTYPER12 = 0 (push-pull)
+  GPIOB->OTYPER  &= ~(0x1u << 12);
+  // OSPEEDR12 = 00 (low)
+  GPIOB->OSPEEDR &= ~(0x3u << (12*2));
+  // PUPDR12 = 10 (pull-down) — на случай, если кто-то переведёт ножку во вход
+  GPIOB->PUPDR   &= ~(0x3u << (12*2));
+  GPIOB->PUPDR   |=  (0x2u << (12*2));
+  // Начальный уровень — HIGH (индикатор питания включен)
+  GPIO_SetBits(GPIOB, GPIO_Pin_12);
+
+  /* PA3 (кнопка питания) -> Input Pull-Up, чтобы гарантировать “не нажато” по умолчанию */
+  GPIOA->MODER   &= ~(0x3u << (3*2));         // input
+  GPIOA->PUPDR   &= ~(0x3u << (3*2));
+  GPIOA->PUPDR   |=  (0x1u << (3*2));         // pull-up
+
 #if defined(SDRAM)
   void SDRAM_Init();
   void FMC_SDRAMWriteProtectionConfig(uint32_t SDRAM_Bank, FunctionalState NewState);

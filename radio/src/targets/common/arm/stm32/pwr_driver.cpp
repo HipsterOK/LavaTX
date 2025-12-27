@@ -8,17 +8,15 @@ void pwrInit()
   // GPIOB уже включен в SystemInit(), но включаем для надежности
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-  // --- PWR_ON (PB12) — управление EN TPS63060 ---
-  // GPIO уже инициализирован в SystemInit(), но переинициализируем для надежности
+  // --- PWR_ON (PB12) — индикатор включения (согласно таблице пользователя) ---
   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;    // держим подтянутым вниз
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // Включаем питание сразу после инициализации GPIO
-  // Это критично для предотвращения отключения при сбросе
+  // Включаем индикатор питания при инициализации
   GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
@@ -30,13 +28,15 @@ void pwrInit()
 
 void pwrOn()
 {
-  // удерживаем питание включённым (EN = HIGH)
+  // Для TBS TANGO: PWR_ON - это индикатор включения, не управление питанием
+  // Питание управляется аппаратно через кнопку Power_SW (PA3)
   GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 }
 
 void pwrOff()
 {
-  // отпускаем питание (EN = LOW → TPS63060 выключится)
+  // Для TBS TANGO: PWR_ON - это индикатор включения, не управление питанием
+  // Питание управляется аппаратно через кнопку Power_SW (PA3)
   GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 }
 
@@ -52,8 +52,7 @@ void pwrResetHandler()
   __ASM volatile("nop");
   __ASM volatile("nop");
 
-  // При перезапуске MCU всегда удерживаем питание включённым
-  // Это нужно для случаев, когда система перезапускается по watchdog
-  // или другим причинам, но должна оставаться включенной
+  // Для TBS TANGO: включаем только индикатор питания
+  // Питание управляется аппаратно через кнопку Power_SW (PA3)
   pwrOn();
 }
