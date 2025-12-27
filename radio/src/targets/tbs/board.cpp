@@ -21,6 +21,7 @@
 #include "opentx.h"
 #include "../../io/crsf/crsf_utilities.h"
 #include "hall90393.h"
+#include "led_driver.h"
 
 #if defined(__cplusplus) && !defined(SIMU)
 extern "C"
@@ -77,7 +78,7 @@ void intmoduleStop()
 {
 }
 
-#if defined(RADIO_MAMBO)
+#if defined(RADIO_TANGO)
 #define VBATT_W (LCD_W - 40)
 #define VBATT_H (45)
 #define VBATT_X (((LCD_W - VBATT_W) / 2) - 2)
@@ -260,37 +261,22 @@ static void runPwrOffCharging(void)
     }
   }
 }
+static char g_battDebugMsg[40];
+
+static void showBatteryDebugPopup()
+{
+  snprintf(g_battDebugMsg, sizeof(g_battDebugMsg),
+           "RAW=%u ANA=%u",
+           adcValues[TX_VOLTAGE],
+           anaIn(TX_VOLTAGE));  // anaIn = отфильтрованное значение (фильтр)
+
+  POPUP_WARNING(g_battDebugMsg);
+}
 
 void boardInit()
 {
   bool skipCharging = false;
 #if defined(RADIO_TANGO)
-  // if (IS_PCBREV_01()) {
-  //   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
-  //                          AUDIO_RCC_AHB1Periph | ADC_RCC_AHB1Periph | SD_RCC_AHB1Periph |
-  //                          HAPTIC_RCC_AHB1Periph | TELEMETRY_RCC_AHB1Periph | LED_RCC_AHB1Periph,
-  //                          ENABLE);
-
-  //   RCC_APB1PeriphClockCmd(LCD_RCC_APB1Periph | AUDIO_RCC_APB1Periph | INTERRUPT_xMS_RCC_APB1Periph |
-  //                          TIMER_2MHz_RCC_APB1Periph | LED_RCC_APB1Periph | TELEMETRY_RCC_APB1Periph,
-  //                          ENABLE);
-
-  //   RCC_APB2PeriphClockCmd(ADC_RCC_APB2Periph | ROTARY_ENCODER_RCC_APB2Periph, ENABLE);
-  // }
-  // else {
-  //   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
-  //                          AUDIO_RCC_AHB1Periph | ADC_RCC_AHB1Periph | SD_RCC_AHB1Periph |
-  //                          HAPTIC_RCC_AHB1Periph | TELEMETRY_RCC_AHB1Periph | LED_RCC_AHB1Periph |
-  //                          EXTMODULE_RCC_AHB1Periph, ENABLE);
-
-  //   RCC_APB1PeriphClockCmd(LCD_RCC_APB1Periph | AUDIO_RCC_APB1Periph | INTERRUPT_xMS_RCC_APB1Periph |
-  //                          TIMER_2MHz_RCC_APB1Periph | LED_RCC_APB1Periph | TELEMETRY_RCC_APB1Periph |
-  //                          MIXER_SCHEDULER_TIMER_RCC_APB1Periph,
-  //                          ENABLE);
-
-  //   RCC_APB2PeriphClockCmd(ADC_RCC_APB2Periph | ROTARY_ENCODER_RCC_APB2Periph | EXTMODULE_RCC_APB2Periph,
-  //                          ENABLE);
-  // }
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
                              KEYS_RCC_AHB1Periph | RCC_AHB1Periph_GPIOA | // LCD GPIO на PA
                              AUDIO_RCC_AHB1Periph |
@@ -302,13 +288,13 @@ void boardInit()
 
   // 2. Разделение clock команд для APB1 и APB2
   RCC_APB1PeriphClockCmd(AUDIO_RCC_APB1Periph | RCC_APB1Periph_SPI2 |
-                             INTERRUPT_xMS_RCC_APB1Periph |
-                             TIMER_2MHz_RCC_APB1Periph | LED_RCC_APB1Periph |
-                             TELEMETRY_RCC_APB1Periph | AUX_SERIAL_RCC_APB1Periph,
-                         ENABLE);
+                       INTERRUPT_xMS_RCC_APB1Periph |
+                       TIMER_2MHz_RCC_APB1Periph |
+                       TELEMETRY_RCC_APB1Periph | AUX_SERIAL_RCC_APB1Periph,
+                       ENABLE);
 
   // 3. Добавление SPI1 (LCD) на APB2
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1| RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1| RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10 | ADC_RCC_APB2Periph, ENABLE);
 
 #elif defined(RADIO_MAMBO)
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
@@ -318,7 +304,7 @@ void boardInit()
                          ENABLE);
 
   RCC_APB1PeriphClockCmd(LCD_RCC_APB1Periph | AUDIO_RCC_APB1Periph | BACKLIGHT_RCC_APB1Periph |
-                             INTERRUPT_xMS_RCC_APB1Periph | TIMER_2MHz_RCC_APB1Periph | TELEMETRY_RCC_APB1Periph |
+                             INTERRUPT_xMS_RCC_APB1Periph | TIMER_2MHz_RCC_APB1Periph | LED_RCC_AHB1Periph | TELEMETRY_RCC_APB1Periph |
                              AUX_SERIAL_RCC_APB1Periph | MIXER_SCHEDULER_TIMER_RCC_APB1Periph,
                          ENABLE);
 
@@ -334,16 +320,6 @@ void boardInit()
   memset(&g_FATFS_Obj, 0, sizeof(g_FATFS_Obj));
 
 #if defined(ROTARY_ENCODER_NAVIGATION)
-// ДО rotaryEncoderInit
-RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-GPIO_InitTypeDef GPIO_InitStruct = {0};
-GPIO_InitStruct.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_10;
-GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
-GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;  // Или DOWN, если по схеме иначе
-
-GPIO_Init(GPIOA, &GPIO_InitStruct);
-
   rotaryEncoderInit();
 #endif
   delaysInit();
@@ -352,9 +328,11 @@ GPIO_Init(GPIOA, &GPIO_InitStruct);
   backlightInit();
   BACKLIGHT_ENABLE();
 #endif
+  backlightInit();
   lcdInit(); // delaysInit() must be called before
+  delay_ms(5);  // короткая пауза для стабилизации
   lcdClear();
-lcdRefresh();
+  lcdRefresh();
   audioInit();
   init2MhzTimer();
   init5msTimer();
@@ -366,6 +344,9 @@ lcdRefresh();
 #if defined(USB_CHARGER)
   usbChargerInit();
 #endif
+  #if defined(RADIO_TANGO)
+      ledPowerOn();   // зелёный LED: Пульт включён
+  #endif
   __enable_irq();
 
   hardwareOptions.pcbrev = crsfGetHWID() & ~HW_ID_MASK;
@@ -444,7 +425,7 @@ void boardOff()
   SysTick->CTRL = 0; // turn off systick
 
   // immediate software reset to do power off charging
-  if (usbPlugged())
+  // if (usbPlugged())
     NVIC_SystemReset();
 
   pwrOff();
@@ -485,12 +466,12 @@ void boardOff()
 
 uint16_t getBatteryVoltage()
 {
-  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
+ int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
   float batt_scale = 0;
 #if defined(RADIO_TANGO)
   if (IS_PCBREV_01())
     batt_scale = BATT_SCALE;
-  else
+  else 
     batt_scale = BATT_SCALE2;
 #elif defined(RADIO_MAMBO)
   batt_scale = BATT_SCALE;
