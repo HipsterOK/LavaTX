@@ -612,6 +612,7 @@ bool usbChargerLed();
   void ledBlue(void);
   void ledGreen(void);
   void ledWhite(void);
+  #define ledPowerOn()    ledGreen()
   #if defined(CHARGING_LEDS)
     #define LED_CHARGING_IN_PROGRESS()    ledRed()
     #define LED_CHARGING_DONE()           ledGreen()
