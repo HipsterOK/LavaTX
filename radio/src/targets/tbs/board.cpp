@@ -325,7 +325,7 @@ void boardInit()
   rotaryEncoderInit();
 #endif
   delaysInit();
-  adcInit();
+  // adcInit(); // Временно отключено для диагностики
 #if defined(RADIO_MAMBO)
   backlightInit();
   BACKLIGHT_ENABLE();
