@@ -24,49 +24,16 @@
 #define SPI_TIMEOUT 10000000UL
 
 volatile bool lcd_on = false;
-volatile bool lcd_busy = false;
+
 // --- SPI write byte ---
 static void spiWrite(uint8_t byte)
 {
-  while ((LCD_SPI->SR & SPI_SR_TXE) == 0)
-    ;
-  LCD_SPI->DR = byte;
-  while ((LCD_SPI->SR & SPI_SR_BSY))
-    ;
-  (void)LCD_SPI->DR; // Dummy read
+while ((LCD_SPI->SR & SPI_SR_TXE) == 0);
+LCD_SPI->DR = byte;
+while ((LCD_SPI->SR & SPI_SR_BSY));
+(void)LCD_SPI->DR; // Dummy read
 }
-void lcdDmaInit(void)
-{
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
 
-  DMA_DeInit(LCD_DMA_Stream);
-
-  DMA_InitTypeDef DMA_InitStructure;
-  DMA_InitStructure.DMA_Channel = LCD_DMA_CHANNEL;
-  DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&(LCD_SPI->DR);
-  DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)displayBuf;
-  DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-  DMA_InitStructure.DMA_BufferSize = 128; // Один page (128 байт)
-  DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-  DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-  DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-  DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-  DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-  DMA_ITConfig(LCD_DMA_Stream, DMA_IT_TC, ENABLE);
-  DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-  DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Enable;
-  DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_Full;
-  DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-  DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-  DMA_Init(LCD_DMA_Stream, &DMA_InitStructure);
-
-  NVIC_InitTypeDef NVIC_InitStructure;
-  NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream5_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
-}
 // --- Commands/Data wrappers ---
 static void spiWriteCommand(uint8_t cmd)
 {
@@ -126,19 +93,6 @@ void lcdHardwareInit(void)
   SPI_InitStructure.SPI_CRCPolynomial = 10;
   SPI_Init(LCD_SPI, &SPI_InitStructure);
   SPI_Cmd(LCD_SPI, ENABLE);
-  lcdDmaInit();
-
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-  GPIO_InitTypeDef GPIO_InitStruct;
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_9;
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  // Потушить на старте (если LED активный HIGH)
-  GPIOD->BSRRH = GPIO_Pin_9;
 }
 void lcdClearBuffer(void)
 {
@@ -207,28 +161,27 @@ void lcdRefresh(bool wait)
   for (uint8_t page = 0; page < 8; page++)
   {
     LCD_CS_LOW();
+
     LCD_DC_LOW();
     spiWrite(0xB0 | page);
     spiWrite(0x00 | (SSD1306_X_OFFSET & 0x0F));
     spiWrite(0x10 | ((SSD1306_X_OFFSET >> 4) & 0x0F));
-    // Дожидаемся, что SPI освободился после отправки команд!
-    while (LCD_SPI->SR & SPI_SR_BSY)
-      ;
+    delay_ms(1);
+
     LCD_DC_HIGH();
 
-    DMA_Cmd(LCD_DMA_Stream, DISABLE);
-    DMA_ClearFlag(LCD_DMA_Stream, LCD_DMA_FLAGS); // Use your macro!
-    LCD_DMA_Stream->M0AR = (uint32_t)&displayBuf[page * 128];
-    LCD_DMA_Stream->NDTR = 128;
-    lcd_busy = true;
+    for (uint8_t col = 0; col < 128; col++)
+    {
+      spiWrite(displayBuf[page * 128 + col]);
+    }
 
-    SPI_I2S_DMACmd(LCD_SPI, SPI_I2S_DMAReq_Tx, ENABLE);
-    DMA_Cmd(LCD_DMA_Stream, ENABLE);
-
-    while (lcd_busy)
-      ; // Ждем окончания передачи этого page
-    // Не трогай CS тут! Только в IRQ!
+    LCD_CS_HIGH();
   }
+}
+
+void lcdRefreshWait(void)
+{
+    // Simple wait for LCD without DMA
 }
 
 // --- Initialize LCD ---
@@ -278,7 +231,6 @@ void lcdOff(void)
     LCD_CS_LOW();
     spiWriteCommand(0xAE); // Display OFF
     LCD_CS_HIGH();
-    lcdRefresh(true);
     lcd_on = false;
   }
 }
@@ -298,34 +250,8 @@ void lcdAdjustContrast(uint8_t val)
   spiWriteCommandWithArg(0x81, val); // Контрастность
   LCD_CS_HIGH();
 }
-void lcdRefreshWait(void)
-{
-    // Simple wait without DMA complexity
-    volatile uint32_t delay = 1000;
-    while (delay--)
-    {
-        __asm("nop");
-    }
-}
 
 void lcdSetRefVolt(uint8_t val)
 {
   (void)val; // Если не используешь, можно просто заглушить
-}
-
-extern "C" void DMA2_Stream5_IRQHandler(void)
-{
-  if (DMA_GetFlagStatus(DMA2_Stream5, DMA_FLAG_TCIF5) != RESET)
-  {
-    DMA_ClearFlag(DMA2_Stream5, DMA_FLAG_TCIF5);
-
-    while (SPI1->SR & SPI_SR_BSY)
-      ;
-
-    SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
-    DMA_Cmd(DMA2_Stream5, DISABLE);
-
-    LCD_CS_HIGH();
-    lcd_busy = false;
-  }
 }
