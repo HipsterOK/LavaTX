@@ -84,7 +84,7 @@
 #endif
 
 // Switches
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
 #define STORAGE_SWITCH_A
 #define HARDWARE_SWITCH_A
 #define HARDWARE_SWITCH_A
@@ -154,7 +154,7 @@
 #endif
 
 // ADC
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
 #define ADC_MAIN ADC1
 #define ADC_DMA DMA2
 #define ADC_DMA_SxCR_CHSEL 0
@@ -217,7 +217,7 @@
 #define PWR_ON_GPIO_PIN GPIO_Pin_12
 
 // Charger
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
 #define CHARGER_STATE_GPIO GPIOD
 #define CHARGER_STATE_GPIO_PIN GPIO_Pin_10 // PD.10
 #define CHARGER_FAULT_GPIO GPIOD
@@ -233,7 +233,7 @@
 #define EXTMODULE_RCC_AHB1Periph (RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_DMA2)
 #define EXTMODULE_RCC_APB2Periph (RCC_APB2Periph_TIM8 | RCC_APB2Periph_USART6)
 #define EXTMODULE_PWR_GPIO GPIOE
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
 #define EXTMODULE_PWR_GPIO_PIN GPIO_Pin_5 // PE.05
 #elif defined(RADIO_MAMBO)
 #define EXTMODULE_PWR_GPIO_PIN GPIO_Pin_2 // PE.02
@@ -502,7 +502,7 @@
 
 // ESP
 #if defined(ESP_SERIAL)
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
 #define ESP_EN_GPIO GPIOA
 #define ESP_EN_GPIO_PIN GPIO_Pin_3 // PA.03
 #define ESP_DMA_Stream_RX DMA1_Stream2

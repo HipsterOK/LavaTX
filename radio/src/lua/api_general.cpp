@@ -64,6 +64,8 @@
   #include "lua/lua_exports_xlite.inc"
 #elif defined(RADIO_X9DP2019)
   #include "lua/lua_exports_x9d+2019.inc"
+#elif defined(RADIO_FAMILY_TBS)
+  #include "lua/lua_exports_tango.inc"
 #elif defined(PCBTARANIS)
   #include "lua/lua_exports_x9d.inc"
 #endif

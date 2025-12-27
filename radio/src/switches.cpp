@@ -239,7 +239,15 @@ void getSwitchesPosition(bool startup)
   CHECK_3POS(2, SW_SC);
 #endif
 
-#if defined(PCBX9LITES)
+#if defined(RADIO_FAMILY_TBS)
+  // TBS has SA-SF switches with specific configurations
+  CHECK_3POS(0, SW_SA);
+  CHECK_3POS(1, SW_SB);
+  CHECK_3POS(2, SW_SC);
+  CHECK_3POS(3, SW_SD);
+  CHECK_3POS(4, SW_SE);
+  CHECK_3POS(5, SW_SF);
+#elif defined(PCBX9LITES)
   CHECK_2POS(SW_SD);
   CHECK_2POS(SW_SE);
   CHECK_2POS(SW_SF);
@@ -288,7 +296,9 @@ void getSwitchesPosition(bool startup)
   CHECK_2POS(SW_SI);
 #endif
 
-#if defined(PCBX7ACCESS)
+#if defined(RADIO_FAMILY_TBS)
+  // TBS has only SA-SF switches
+#elif defined(PCBX7ACCESS)
   CHECK_2POS(SW_SI);
 #elif defined(PCBHORUS) || (defined(PCBX7) && !defined(RADIO_ZORRO))
   CHECK_2POS(SW_SI);

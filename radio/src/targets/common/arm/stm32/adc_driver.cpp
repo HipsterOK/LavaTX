@@ -51,8 +51,8 @@
   const int8_t adcDirection[NUM_ANALOGS] = {-1,1,-1,1,  -1,-1,  1,  1};
 #elif defined(RADIO_ZORRO)
   const int8_t adcDirection[NUM_ANALOGS] = {-1, 1, 1, -1, -1, 1, 1, 1};
-#elif defined(RADIO_TANGO)
-  const int8_t adcDirection[NUM_ANALOGS] = {1,1,1,1,  1,1};
+#elif defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
+  const int8_t adcDirection[NUM_ANALOGS] = {-1,1,-1,1,  1,1,  1};
 #elif defined(RADIO_MAMBO)
   const int8_t adcDirection[NUM_ANALOGS] = {1,1,1,1,  1,1,  1,1,1,1,1,  1,1};
 #elif defined(RADIO_TPRO)
@@ -72,7 +72,7 @@
   #define FIRST_ANALOG_ADC             0
   #define NUM_ANALOGS_ADC              11
   #define NUM_ANALOGS_ADC_EXT          (NUM_ANALOGS - NUM_ANALOGS_ADC)
-#elif defined(RADIO_TANGO)
+#elif defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
   #define FIRST_ANALOG_ADC             TX_VOLTAGE
   #define NUM_ANALOGS_ADC              (NUM_ANALOGS - FIRST_ANALOG_ADC)
 #elif defined(RADIO_MAMBO)
@@ -145,7 +145,7 @@ void adcInit()
 #elif defined(RADIO_T8) || defined(RADIO_TLITE)
   ADC_MAIN->SQR2 = (ADC_CHANNEL_BATT << 0) + (ADC_Channel_Vbat << 5);
   ADC_MAIN->SQR3 = (ADC_CHANNEL_STICK_LH << 0) + (ADC_CHANNEL_STICK_LV << 5) + (ADC_CHANNEL_STICK_RV << 10) + (ADC_CHANNEL_STICK_RH << 15);
-#elif defined(RADIO_TANGO)
+#elif defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
   ADC_MAIN->SQR2 = 0;
   ADC_MAIN->SQR3 = (ADC_CHANNEL_BATT<<0) + (ADC_Channel_Vbat<<5);
 #elif defined(RADIO_MAMBO)

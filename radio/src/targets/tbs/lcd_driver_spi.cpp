@@ -300,7 +300,10 @@ void lcdAdjustContrast(uint8_t val)
 }
 void lcdRefreshWait(void)
 {
-    while (lcd_busy);
+    while (lcd_busy)
+    {
+        // Wait for LCD to be ready
+    }
 }
 
 void lcdSetRefVolt(uint8_t val)
