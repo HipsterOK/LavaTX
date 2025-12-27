@@ -369,7 +369,7 @@ void boardInit()
 #endif
 
 #if defined(PWR_BUTTON_PRESS)
-  // PWR_ON будет установлен в конце boardInit()
+  // PWR_ON всегда HIGH - простая логика
 #endif
 
   if (!UNEXPECTED_SHUTDOWN())
@@ -380,7 +380,6 @@ void boardInit()
     runPwrOffCharging();
   }
 
-  // PWR_ON теперь управляется в boardOff() при пробуждении
 }
 
 void boardOff()
@@ -411,11 +410,8 @@ void boardOff()
   ledOff();
 #endif
 
-  // ПРОСТОЕ РЕШЕНИЕ: Не используем глубокий сон, просто ждем кнопку
-  // Это предотвратит проблемы с STOP режимом
-
-  // Выключаем питание (TPS63060)
-  pwrOff();
+  // ПРОСТОЕ РЕШЕНИЕ: polling PWR_SW без управления питанием
+  // PWR_ON остается HIGH всегда
 
   // Полностью выключаем все LED и подсветку
   BACKLIGHT_DISABLE();
