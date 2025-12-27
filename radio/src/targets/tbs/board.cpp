@@ -388,6 +388,9 @@ void boardOff()
   powerOffCount++;
   TRACE("power off #%d\n", powerOffCount);
 
+  // Очищаем дисплей перед выключением
+  lcdClear();
+
 #if defined(AUDIO_MUTE_GPIO_PIN)
   GPIO_SetBits(AUDIO_MUTE_GPIO, AUDIO_MUTE_GPIO_PIN); // mute
 #endif
@@ -410,8 +413,8 @@ void boardOff()
   ledOff();
 #endif
 
-  // ПРОСТОЕ РЕШЕНИЕ: polling PWR_SW без управления питанием
-  // PWR_ON остается HIGH всегда
+  // Отключаем питание TPS63060 через PWR_ON (PB12)
+  pwrOff();
 
   // Полностью выключаем все LED и подсветку
   BACKLIGHT_DISABLE();
@@ -452,15 +455,17 @@ void boardOff()
         TRACE("WAKEUP: Power button pressed! (poll: %d, debounce: %d)\n", pollCount, pressCount);
         pressCount = 0;
 
-      // Включаем все обратно
-      pwrOn();
+        // Очищаем дисплей перед перезагрузкой
+        lcdClear();
 
-      // Очищаем экран перед перезагрузкой
-      lcdClear();
+        // Включаем питание TPS63060
+        pwrOn();
 
-      // Небольшая задержка
-      volatile uint32_t delay = 10000;
-      while (delay--) { __ASM volatile("nop"); }
+        // Ждем пока TPS63060 включится (нужно время для стабилизации питания)
+        volatile uint32_t delay = 50000; // увеличенная задержка для TPS63060
+        while (delay--) { __ASM volatile("nop"); }
+
+        TRACE("PWR_ON activated, resetting system...\n");
 
         // Перезагружаемся для нормальной работы
         NVIC_SystemReset();
