@@ -380,9 +380,7 @@ void boardInit()
     runPwrOffCharging();
   }
 
-  // Система полностью готова - устанавливаем PWR_ON в HIGH
-  // Это сигнал для аппаратной логики питания
-  pwrOn();
+  // PWR_ON теперь управляется в boardOff() при пробуждении
 }
 
 void boardOff()
@@ -411,54 +409,63 @@ void boardOff()
   ledOff();
 #endif
 
-  // Выключаем питание СРАЗУ, не дожидаясь отпускания кнопки
+  // Настраиваем PWR_SW (PA3) для пробуждения из STOP режима
+  // Включаем SYSCFG clock для EXTI
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
+  // Настраиваем EXTI для PA3
+  SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource3);
+
+  EXTI_InitTypeDef EXTI_InitStructure;
+  EXTI_InitStructure.EXTI_Line = EXTI_Line3;
+  EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling; // Любое изменение
+  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+  EXTI_Init(&EXTI_InitStructure);
+
+  // Настраиваем NVIC для EXTI3
+  NVIC_InitTypeDef NVIC_InitStructure;
+  NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+
+  // Выключаем питание (TPS63060)
   pwrOff();
 
+  // Ждем отпускания кнопки
   while (pwrPressed())
   {
     WDG_RESET();
   }
 
-  // Очищаем экран перед выключением
+  // Очищаем экран
   lcdClear();
   lcdOff();
+
+  // Отключаем ненужную периферию для снижения потребления
   SysTick->CTRL = 0; // turn off systick
 
-  // immediate software reset to do power off charging - ЗАКОММЕНТИРОВАНО
-  // Приводит к самовключению через pwrResetHandler()
-  // if (usbPlugged())
-  //   NVIC_SystemReset();
+  // Входим в STOP режим
+  PWR->CR |= PWR_CR_CWUF;     // Clear wakeup flag
+  PWR->CR &= ~PWR_CR_PDDS;    // STOP mode (не STANDBY)
+  SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 
-  // disable interrupts
-  __disable_irq();
+  // Включаем wakeup
+  PWR->CSR |= PWR_CSR_EWUP;
 
-  volatile uint32_t tmr = get_tmr10ms();
-  while (get_tmr10ms() - tmr <= 100)
-  {
-    WDG_RESET();
-  }
+  __WFE(); // Входим в STOP режим, проснемся от EXTI3
 
-  while (1)
-  {
-    WDG_RESET();
-#if defined(PWR_BUTTON_PRESS)
-    // needs watchdog reset because CPU is still running while
-    // the power key is held pressed by the user.
-    // The power key should be released by now, but we must make sure
-    if (!pwrPressed())
-    {
-      // Put the CPU into sleep to reduce the consumption,
-      // it might help with the RTC reset issue
-      PWR->CR |= PWR_CR_CWUF;
-      /* Select STANDBY mode */
-      PWR->CR |= PWR_CR_PDDS;
-      /* Set SLEEPDEEP bit of Cortex System Control Register */
-      SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-      /* Request Wait For Event */
-      __WFE();
-    }
-#endif
-  }
+  // Сюда попадаем после пробуждения
+  // Восстанавливаем системные настройки
+  SystemInit();
+
+  // Включаем питание обратно
+  pwrOn();
+
+  // Перезагружаемся для нормальной работы
+  NVIC_SystemReset();
 
   // this function must not return!
 }
@@ -483,6 +490,16 @@ uint16_t getBatteryVoltage()
 uint8_t getBoardOffState()
 {
   return boardOffState;
+}
+
+// Обработчик прерывания от PWR_SW (PA3) для выхода из STOP режима
+extern "C" void EXTI3_IRQHandler(void)
+{
+  if (EXTI_GetITStatus(EXTI_Line3) != RESET)
+  {
+    EXTI_ClearITPendingBit(EXTI_Line3);
+    // Просто выходим из прерывания - система проснется из STOP режима
+  }
 }
 
 void boardReboot2bootloader(uint32_t isNeedFlash, uint32_t HwId, uint32_t sn)
