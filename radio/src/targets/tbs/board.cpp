@@ -200,20 +200,9 @@ static void runPwrOffCharging(void)
       WIFI_OFF();
 #endif
 
-    // backlight
+    // backlight - полностью отключена в режиме зарядки/выключения
 #if defined(CHARGING_ANIMATION)
-    for (uint8_t i = 0; i < NUM_OF_KEY_GROUPS; i++)
-    {
-      if (keysState[i] ^ (GPIO_ReadInputData(keysPort[i]) & keysPin[i]))
-      {
-        keysState[i] = GPIO_ReadInputData(keysPort[i]) & keysPin[i];
-        tmrBacklight = g_tmr10ms;
-      }
-    }
-    if (g_tmr10ms - tmrBacklight < BACKLIGHT_TIMEOUT || 0)
-      BACKLIGHT_ENABLE();
-    else
-      BACKLIGHT_DISABLE();
+    BACKLIGHT_DISABLE();
 #endif
 
     // charging
@@ -416,6 +405,11 @@ void boardOff()
 
   BACKLIGHT_DISABLE();
 
+  // Отключаем все LED перед выключением
+#if defined(CHARGING_LEDS)
+  ledOff();
+#endif
+
   while (pwrPressed())
   {
     WDG_RESET();
@@ -424,9 +418,10 @@ void boardOff()
   lcdOff();
   SysTick->CTRL = 0; // turn off systick
 
-  // immediate software reset to do power off charging
+  // immediate software reset to do power off charging - ЗАКОММЕНТИРОВАНО
+  // Приводит к самовключению через pwrResetHandler()
   // if (usbPlugged())
-    NVIC_SystemReset();
+  //   NVIC_SystemReset();
 
   pwrOff();
 
