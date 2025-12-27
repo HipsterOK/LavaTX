@@ -419,7 +419,7 @@ void boardOff()
   EXTI_InitTypeDef EXTI_InitStructure;
   EXTI_InitStructure.EXTI_Line = EXTI_Line3;
   EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling; // Любое изменение
+  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling; // Только нажатие (LOW)
   EXTI_InitStructure.EXTI_LineCmd = ENABLE;
   EXTI_Init(&EXTI_InitStructure);
 
@@ -457,8 +457,15 @@ void boardOff()
   GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10
   GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11
 
-  // Отключаем тактирование GPIOE чтобы полностью выключить LED и подсветку
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, DISABLE);
+  // Отключаем тактирование GPIO чтобы предотвратить любое моргание
+  // GPIOA оставляем включенным для EXTI3 (PA3)
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, DISABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, DISABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, DISABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, DISABLE); // LED и подсветка
+
+  // Небольшая задержка чтобы GPIO точно выключились
+  delay_ms(1);
 
   // Отключаем ненужную периферию для снижения потребления
   SysTick->CTRL = 0; // turn off systick
@@ -477,7 +484,10 @@ void boardOff()
   // Восстанавливаем системные настройки
   SystemInit();
 
-  // Включаем тактирование GPIOE обратно для LED и подсветки
+  // Включаем тактирование GPIO обратно (GPIOA уже включен)
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
   // Включаем питание обратно
@@ -517,7 +527,15 @@ extern "C" void EXTI3_IRQHandler(void)
   if (EXTI_GetITStatus(EXTI_Line3) != RESET)
   {
     EXTI_ClearITPendingBit(EXTI_Line3);
-    // Просто выходим из прерывания - система проснется из STOP режима
+
+    // Проверяем состояние PWR_SW - просыпаемся только при нажатии
+    if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_3) == Bit_RESET) {
+      // Кнопка нажата - просыпаемся
+      // TRACE("WAKEUP: PWR_SW pressed");
+    } else {
+      // Ложное срабатывание - игнорируем
+      return;
+    }
   }
 }
 
