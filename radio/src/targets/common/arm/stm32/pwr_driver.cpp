@@ -28,29 +28,20 @@ void pwrInit()
 
 void pwrOn()
 {
-  // Для TBS TANGO: PWR_ON - это индикатор включения, не управление питанием
-  // Питание управляется аппаратно через кнопку Power_SW (PA3)
+  // PWR_ON управляет EN пином TPS63060
   GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 }
 
 void pwrOff()
 {
-  // Для TBS TANGO: оставляем PWR_ON в HIGH всегда
-  // Это может быть необходимо для аппаратной логики питания
-  // GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+  // PWR_ON управляет EN пином TPS63060
+  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 }
 
 bool pwrPressed()
 {
-  // Кнопка активна по LOW
-  bool pressed = GPIO_ReadInputDataBit(PWR_SWITCH_GPIO, PWR_SWITCH_GPIO_PIN) == Bit_RESET;
-  // Отладка: выводим состояние кнопки
-  static bool last_pressed = false;
-  if (pressed != last_pressed) {
-    last_pressed = pressed;
-    // TRACE("PWR_SW: %s", pressed ? "PRESSED" : "RELEASED");
-  }
-  return pressed;
+  // Для TBS TANGO пробуем HIGH активный (зависит от схемы платы)
+  return GPIO_ReadInputDataBit(PWR_SWITCH_GPIO, PWR_SWITCH_GPIO_PIN) == Bit_SET;
 }
 
 void pwrResetHandler()

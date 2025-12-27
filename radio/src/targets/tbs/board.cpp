@@ -369,8 +369,10 @@ void boardInit()
 #endif
 
 #if defined(PWR_BUTTON_PRESS)
-  // PWR_ON будет установлен в HIGH в конце boardInit()
-  // когда система полностью готова
+  // Если кнопка питания нажата - включаем PWR_ON
+  if (pwrPressed()) {
+    pwrOn();
+  }
 #endif
 
   if (!UNEXPECTED_SHUTDOWN())
@@ -427,8 +429,7 @@ void boardOff()
   // if (usbPlugged())
   //   NVIC_SystemReset();
 
-  // pwrOff(); // НЕ выключаем индикатор питания при выключении
-  // Оставляем PWR_ON в HIGH для аппаратной логики питания
+  pwrOff(); // Выключаем питание через TPS63060
 
   // disable interrupts
   __disable_irq();
