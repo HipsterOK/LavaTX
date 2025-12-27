@@ -822,7 +822,7 @@ enum MixSources {
 };
 
 #if defined(__cplusplus)
-// static_assert(MIXSRC_FIRST_LOGICAL_SWITCH == MIXSRC_FIRST_SWITCH + STORAGE_NUM_SWITCHES, "Wrong switches definition in MIXSRC list");
+static_assert(MIXSRC_FIRST_LOGICAL_SWITCH == MIXSRC_FIRST_SWITCH + STORAGE_NUM_SWITCHES, "Wrong switches definition in MIXSRC list");
 #endif
 
 #define MIXSRC_FIRST                (MIXSRC_NONE + 1)
