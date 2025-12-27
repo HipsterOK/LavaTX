@@ -528,9 +528,9 @@
 #endif
 
 // Haptic
-#define HAPTIC_RCC_AHB1Periph RCC_AHB1Periph_GPIOB
-#define HAPTIC_GPIO GPIOB
-#define HAPTIC_GPIO_PIN GPIO_Pin_0 // PB.00
+#define HAPTIC_RCC_AHB1Periph RCC_AHB1Periph_GPIOE
+#define HAPTIC_GPIO GPIOE
+#define HAPTIC_GPIO_PIN GPIO_Pin_13 // PE.13
 
 // ESP
 #if defined(ESP_SERIAL)
