@@ -5,15 +5,21 @@ void pwrInit()
   GPIO_InitTypeDef GPIO_InitStructure;
 
   // --- включаем тактирование GPIOA и GPIOB (PA3 — кнопка, PB12 — питание) ---
+  // GPIOB уже включен в SystemInit(), но включаем для надежности
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
   // --- PWR_ON (PB12) — управление EN TPS63060 ---
+  // GPIO уже инициализирован в SystemInit(), но переинициализируем для надежности
   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;    // держим подтянутым вниз
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
+
+  // Включаем питание сразу после инициализации GPIO
+  // Это критично для предотвращения отключения при сбросе
+  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
