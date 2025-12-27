@@ -21,7 +21,6 @@
 #include "opentx.h"
 #include "../../io/crsf/crsf_utilities.h"
 #include "hall90393.h"
-#include "led_driver.h"
 
 #if defined(__cplusplus) && !defined(SIMU)
 extern "C"
@@ -78,7 +77,7 @@ void intmoduleStop()
 {
 }
 
-#if defined(RADIO_TANGO)
+#if defined(RADIO_MAMBO)
 #define VBATT_W (LCD_W - 40)
 #define VBATT_H (45)
 #define VBATT_X (((LCD_W - VBATT_W) / 2) - 2)
@@ -200,9 +199,20 @@ static void runPwrOffCharging(void)
       WIFI_OFF();
 #endif
 
-    // backlight - полностью отключена в режиме зарядки/выключения
+    // backlight
 #if defined(CHARGING_ANIMATION)
-    BACKLIGHT_DISABLE();
+    for (uint8_t i = 0; i < NUM_OF_KEY_GROUPS; i++)
+    {
+      if (keysState[i] ^ (GPIO_ReadInputData(keysPort[i]) & keysPin[i]))
+      {
+        keysState[i] = GPIO_ReadInputData(keysPort[i]) & keysPin[i];
+        tmrBacklight = g_tmr10ms;
+      }
+    }
+    if (g_tmr10ms - tmrBacklight < BACKLIGHT_TIMEOUT || 0)
+      BACKLIGHT_ENABLE();
+    else
+      BACKLIGHT_DISABLE();
 #endif
 
     // charging
@@ -250,22 +260,37 @@ static void runPwrOffCharging(void)
     }
   }
 }
-static char g_battDebugMsg[40];
-
-static void showBatteryDebugPopup()
-{
-  snprintf(g_battDebugMsg, sizeof(g_battDebugMsg),
-           "RAW=%u ANA=%u",
-           adcValues[TX_VOLTAGE],
-           anaIn(TX_VOLTAGE));  // anaIn = отфильтрованное значение (фильтр)
-
-  POPUP_WARNING(g_battDebugMsg);
-}
 
 void boardInit()
 {
   bool skipCharging = false;
 #if defined(RADIO_TANGO)
+  // if (IS_PCBREV_01()) {
+  //   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
+  //                          AUDIO_RCC_AHB1Periph | ADC_RCC_AHB1Periph | SD_RCC_AHB1Periph |
+  //                          HAPTIC_RCC_AHB1Periph | TELEMETRY_RCC_AHB1Periph | LED_RCC_AHB1Periph,
+  //                          ENABLE);
+
+  //   RCC_APB1PeriphClockCmd(LCD_RCC_APB1Periph | AUDIO_RCC_APB1Periph | INTERRUPT_xMS_RCC_APB1Periph |
+  //                          TIMER_2MHz_RCC_APB1Periph | LED_RCC_APB1Periph | TELEMETRY_RCC_APB1Periph,
+  //                          ENABLE);
+
+  //   RCC_APB2PeriphClockCmd(ADC_RCC_APB2Periph | ROTARY_ENCODER_RCC_APB2Periph, ENABLE);
+  // }
+  // else {
+  //   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
+  //                          AUDIO_RCC_AHB1Periph | ADC_RCC_AHB1Periph | SD_RCC_AHB1Periph |
+  //                          HAPTIC_RCC_AHB1Periph | TELEMETRY_RCC_AHB1Periph | LED_RCC_AHB1Periph |
+  //                          EXTMODULE_RCC_AHB1Periph, ENABLE);
+
+  //   RCC_APB1PeriphClockCmd(LCD_RCC_APB1Periph | AUDIO_RCC_APB1Periph | INTERRUPT_xMS_RCC_APB1Periph |
+  //                          TIMER_2MHz_RCC_APB1Periph | LED_RCC_APB1Periph | TELEMETRY_RCC_APB1Periph |
+  //                          MIXER_SCHEDULER_TIMER_RCC_APB1Periph,
+  //                          ENABLE);
+
+  //   RCC_APB2PeriphClockCmd(ADC_RCC_APB2Periph | ROTARY_ENCODER_RCC_APB2Periph | EXTMODULE_RCC_APB2Periph,
+  //                          ENABLE);
+  // }
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
                              KEYS_RCC_AHB1Periph | RCC_AHB1Periph_GPIOA | // LCD GPIO на PA
                              AUDIO_RCC_AHB1Periph |
@@ -277,13 +302,13 @@ void boardInit()
 
   // 2. Разделение clock команд для APB1 и APB2
   RCC_APB1PeriphClockCmd(AUDIO_RCC_APB1Periph | RCC_APB1Periph_SPI2 |
-                       INTERRUPT_xMS_RCC_APB1Periph |
-                       TIMER_2MHz_RCC_APB1Periph |
-                       TELEMETRY_RCC_APB1Periph | AUX_SERIAL_RCC_APB1Periph,
-                       ENABLE);
+                             INTERRUPT_xMS_RCC_APB1Periph |
+                             TIMER_2MHz_RCC_APB1Periph | LED_RCC_APB1Periph |
+                             TELEMETRY_RCC_APB1Periph | AUX_SERIAL_RCC_APB1Periph,
+                         ENABLE);
 
   // 3. Добавление SPI1 (LCD) на APB2
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1| RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10 | ADC_RCC_APB2Periph, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1| RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10, ENABLE);
 
 #elif defined(RADIO_MAMBO)
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
@@ -293,7 +318,7 @@ void boardInit()
                          ENABLE);
 
   RCC_APB1PeriphClockCmd(LCD_RCC_APB1Periph | AUDIO_RCC_APB1Periph | BACKLIGHT_RCC_APB1Periph |
-                             INTERRUPT_xMS_RCC_APB1Periph | TIMER_2MHz_RCC_APB1Periph | LED_RCC_AHB1Periph | TELEMETRY_RCC_APB1Periph |
+                             INTERRUPT_xMS_RCC_APB1Periph | TIMER_2MHz_RCC_APB1Periph | TELEMETRY_RCC_APB1Periph |
                              AUX_SERIAL_RCC_APB1Periph | MIXER_SCHEDULER_TIMER_RCC_APB1Periph,
                          ENABLE);
 
@@ -309,6 +334,16 @@ void boardInit()
   memset(&g_FATFS_Obj, 0, sizeof(g_FATFS_Obj));
 
 #if defined(ROTARY_ENCODER_NAVIGATION)
+// ДО rotaryEncoderInit
+RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+GPIO_InitTypeDef GPIO_InitStruct = {0};
+GPIO_InitStruct.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_10;
+GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
+GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;  // Или DOWN, если по схеме иначе
+
+GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   rotaryEncoderInit();
 #endif
   delaysInit();
@@ -317,11 +352,9 @@ void boardInit()
   backlightInit();
   BACKLIGHT_ENABLE();
 #endif
-  backlightInit();
   lcdInit(); // delaysInit() must be called before
-  delay_ms(5);  // короткая пауза для стабилизации
   lcdClear();
-  lcdRefresh();
+lcdRefresh();
   audioInit();
   init2MhzTimer();
   init5msTimer();
@@ -333,9 +366,6 @@ void boardInit()
 #if defined(USB_CHARGER)
   usbChargerInit();
 #endif
-  #if defined(RADIO_TANGO)
-      ledPowerOn();   // зелёный LED: Пульт включён
-  #endif
   __enable_irq();
 
   hardwareOptions.pcbrev = crsfGetHWID() & ~HW_ID_MASK;
@@ -369,7 +399,10 @@ void boardInit()
 #endif
 
 #if defined(PWR_BUTTON_PRESS)
-  // PWR_ON всегда HIGH - простая логика
+  if (WAS_RESET_BY_WATCHDOG_OR_SOFTWARE())
+  {
+    pwrOn();
+  }
 #endif
 
   if (!UNEXPECTED_SHUTDOWN())
@@ -379,7 +412,6 @@ void boardInit()
   {
     runPwrOffCharging();
   }
-
 }
 
 void boardOff()
@@ -387,9 +419,6 @@ void boardOff()
   static int powerOffCount = 0;
   powerOffCount++;
   TRACE("power off #%d\n", powerOffCount);
-
-  // Очищаем дисплей перед выключением
-  lcdClear();
 
 #if defined(AUDIO_MUTE_GPIO_PIN)
   GPIO_SetBits(AUDIO_MUTE_GPIO, AUDIO_MUTE_GPIO_PIN); // mute
@@ -408,13 +437,12 @@ void boardOff()
 
   BACKLIGHT_DISABLE();
 
-  // Отключаем все LED перед выключением
 #if defined(CHARGING_LEDS)
   ledOff();
 #endif
 
-  // ПРОСТОЕ РЕШЕНИЕ: polling PWR_SW без управления питанием
-  // PWR_ON остается HIGH всегда
+  // Отключаем питание TPS63060 через PWR_ON (PB12)
+  pwrOff();
 
   // Полностью выключаем все LED и подсветку
   BACKLIGHT_DISABLE();
@@ -432,53 +460,48 @@ void boardOff()
   // Очищаем экран
   lcdClear();
   lcdOff();
+  SysTick->CTRL = 0; // turn off systick
 
-  // Бесконечный цикл ожидания кнопки
-  // Система остается активной, но в минимальном режиме
   TRACE("ENTERING POWER OFF POLLING MODE\n");
   static int pollCount = 0;
+  int pressCount = 0;
 
   while (1)
   {
-    pollCount++;
-    if (pollCount % 100 == 0) {
-      TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
-    }
-
-    // Проверяем кнопку с debounce
-    static int pressCount = 0;
     if (pwrPressed())
     {
       pressCount++;
-      if (pressCount > 5) {  // debounce - 5 последовательных чтений
-        // Кнопка нажата - просыпаемся
+      if (pressCount > 5) { // 5 последовательных чтений для debounce
         TRACE("WAKEUP: Power button pressed! (poll: %d, debounce: %d)\n", pollCount, pressCount);
-        pressCount = 0;
-
         // Очищаем дисплей перед перезагрузкой
         lcdClear();
 
-        // Включаем все обратно
+        // Включаем питание TPS63060
         pwrOn();
 
-        // Небольшая задержка
-        volatile uint32_t delay = 10000;
+        // Ждем пока TPS63060 включится (нужно время для стабилизации питания)
+        volatile uint32_t delay = 50000; // увеличенная задержка для TPS63060
         while (delay--) { __ASM volatile("nop"); }
+
+        TRACE("PWR_ON activated, resetting system...\n");
 
         // Перезагружаемся для нормальной работы
         NVIC_SystemReset();
       }
-    } else {
-      // Кнопка не нажата - сбрасываем счетчик debounce
-      pressCount = 0;
+    }
+    else
+    {
+      pressCount = 0; // Сброс счетчика, если кнопка отпущена
     }
 
-    // Короткая пауза
-    volatile uint32_t delay = 1000;
+    volatile uint32_t delay = 1000; // ~1ms delay
     while (delay--) { __ASM volatile("nop"); }
 
-    // Сбрасываем watchdog
     WDG_RESET();
+    pollCount++;
+    if (pollCount % 100 == 0) { // Выводим сообщение каждые ~100ms
+      TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
+    }
   }
 
   // this function must not return!
@@ -486,12 +509,12 @@ void boardOff()
 
 uint16_t getBatteryVoltage()
 {
- int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
+  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
   float batt_scale = 0;
 #if defined(RADIO_TANGO)
   if (IS_PCBREV_01())
     batt_scale = BATT_SCALE;
-  else 
+  else
     batt_scale = BATT_SCALE2;
 #elif defined(RADIO_MAMBO)
   batt_scale = BATT_SCALE;
@@ -505,8 +528,6 @@ uint8_t getBoardOffState()
 {
   return boardOffState;
 }
-
-// EXTI обработчик больше не нужен - используем polling
 
 void boardReboot2bootloader(uint32_t isNeedFlash, uint32_t HwId, uint32_t sn)
 {

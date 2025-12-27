@@ -1278,6 +1278,8 @@ inline int div_and_round(int num, int den)
 }
 
 extern uint8_t g_vbat100mV;
+extern uint8_t g_trimEditMode;
+extern uint8_t g_trimState;
 
 inline uint8_t GET_TXBATT_BARS(uint8_t barsMax)
 {

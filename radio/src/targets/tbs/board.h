@@ -72,12 +72,7 @@ extern uint16_t sessionTimer;
 #if defined(RADIO_MAMBO)
 static const uint8_t switchPosition[][2] = {{0,0}, {0,1}, {1,0}, {1,1}, {1,2}, {0,2}};
 #elif defined(RADIO_TANGO)
-static const uint8_t switchPosition[][2] = {
-  {0,0}, // SA — слева, верх
-  {0,1}, // SB — слева, ниже
-  {1,0}, // SC — справа, верх
-  {1,1}, // SD — справа, ниже
-};
+static const uint8_t switchPosition[][2] = {{0,1}, {0,0}, {1,0}, {1,1}, {0,2}, {1,2}};
 #endif
 
 // Board driver
@@ -218,7 +213,7 @@ enum EnumSwitches
   SW_SE,
   SW_SF,
 };
-#define IS_3POS(x)                      ((x) == SW_SA || (x) == SW_SC)
+#define IS_3POS(x)                      ((x) != SW_SA && (x) != SW_SD && (x) != SW_SE && (x) != SW_SF )
 
 enum EnumSwitchesPositions
 {
@@ -242,8 +237,8 @@ enum EnumSwitchesPositions
   SW_SF2,
 };
 
-#if defined(RADIO_TANGO)
-#define NUM_SWITCHES                    4
+#if defined(RADIO_LAVA_ONE)
+#define NUM_SWITCHES                    6
 #define STORAGE_NUM_SWITCHES            NUM_SWITCHES
 #define DEFAULT_SWITCH_CONFIG           (SWITCH_TOGGLE << 10) + (SWITCH_TOGGLE << 8) + (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_3POS << 0)
 
@@ -337,6 +332,20 @@ enum Analogs {
 #define STICKS_PWM_ENABLED()            false
 #endif
 
+// Общие определения для всех плат TBS
+#ifndef NUM_SWITCHES
+#define NUM_SWITCHES                    6
+#endif
+#ifndef STORAGE_NUM_SWITCHES
+#define STORAGE_NUM_SWITCHES            NUM_SWITCHES
+#endif
+#ifndef STORAGE_NUM_SWITCHES_POSITIONS
+#define STORAGE_NUM_SWITCHES_POSITIONS  (STORAGE_NUM_SWITCHES * 3)
+#endif
+#ifndef DEFAULT_SWITCH_CONFIG
+#define DEFAULT_SWITCH_CONFIG           (SWITCH_TOGGLE << 10) + (SWITCH_TOGGLE << 8) + (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_3POS << 0)
+#endif
+
 #if !defined(NUM_FUNCTIONS_SWITCHES)
   #define NUM_FUNCTIONS_SWITCHES          0
 #endif
@@ -383,8 +392,8 @@ uint16_t getBatteryVoltage();   // returns current battery voltage in 10mV steps
 
 #define BATT_CALIB_OFFSET             5
 #if defined(RADIO_TANGO)
-#define BATT_SCALE                    (3.10f)
-#define BATT_SCALE2                   (3.10f)
+#define BATT_SCALE                    (4.446f)
+#define BATT_SCALE2                   (4.162f)
 #elif defined(RADIO_MAMBO)
 #define BATT_SCALE                    (4.55f)
 #endif
@@ -453,7 +462,6 @@ uint32_t pwrPressedDuration();
 // Backlight driver
 #define BACKLIGHT_TIMEOUT_MIN           2
 #define BACKLIGHT_FORCED_ON             101
-
 #if defined(SIMU)
   #define backlightInit()
   #define backlightDisable()
@@ -463,18 +471,15 @@ uint32_t pwrPressedDuration();
   #define BACKLIGHT_ENABLE()
 #else
 #if defined(RADIO_TANGO)
-// Простая подсветка кнопок — включается/выключается без PWM
-void backlightInit(void);
-void backlightDisable(void);
-void backlightEnable(uint8_t level);
-uint8_t isBacklightEnabled(void);
+  #define backlightDisable()              lcdOff()
+  #define isBacklightEnabled()            isLcdOn()
 #elif defined(RADIO_MAMBO)
-void backlightInit(void);
-void backlightDisable(void);
-uint8_t isBacklightEnabled(void);
-void backlightEnable(uint8_t level);
+  void backlightInit(void);
+  void backlightDisable(void);
+  #define BACKLIGHT_DISABLE()             backlightDisable()
+  uint8_t isBacklightEnabled(void);
 #endif
-
+  void backlightEnable(uint8_t level);
   #define BACKLIGHT_DISABLE()             backlightDisable()
   #define BACKLIGHT_ENABLE()              backlightEnable(g_eeGeneral.backlightBright)
   #define BACKLIGHT_LEVEL_MAX             100
@@ -625,7 +630,6 @@ bool usbChargerLed();
 
 // LCD driver
 #if defined(RADIO_TANGO)
-  #define CHARGING_ANIMATION
   #define LCD_W                           128
   #define LCD_H                           64
   #define LCD_DEPTH                       1
