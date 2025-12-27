@@ -288,6 +288,9 @@ void boardInit()
                              AUX_SERIAL_RCC_AHB1Periph,
                          ENABLE);
 
+  // Индикация: RCC_AHB1 прошел - включаем LED_LINK_OK (PE10)
+  GPIO_SetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10 - зеленый
+
   // 2. Разделение clock команд для APB1 и APB2
   RCC_APB1PeriphClockCmd(AUDIO_RCC_APB1Periph | RCC_APB1Periph_SPI2 |
                        INTERRUPT_xMS_RCC_APB1Periph |
@@ -297,6 +300,9 @@ void boardInit()
 
   // 3. Добавление SPI1 (LCD) на APB2
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1| RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10 | ADC_RCC_APB2Periph, ENABLE);
+
+  // Индикация: RCC_APB прошел - включаем LED_NO_LINK (PE11)
+  GPIO_SetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11 - красный
 
 #elif defined(RADIO_MAMBO)
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
