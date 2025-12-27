@@ -388,6 +388,9 @@ void boardOff()
   powerOffCount++;
   TRACE("power off #%d\n", powerOffCount);
 
+  // Очищаем дисплей перед выключением
+  lcdClear();
+
 #if defined(AUDIO_MUTE_GPIO_PIN)
   GPIO_SetBits(AUDIO_MUTE_GPIO, AUDIO_MUTE_GPIO_PIN); // mute
 #endif
@@ -452,12 +455,15 @@ void boardOff()
         TRACE("WAKEUP: Power button pressed! (poll: %d, debounce: %d)\n", pollCount, pressCount);
         pressCount = 0;
 
-      // Включаем все обратно
-      pwrOn();
+        // Очищаем дисплей перед перезагрузкой
+        lcdClear();
 
-      // Небольшая задержка
-      volatile uint32_t delay = 10000;
-      while (delay--) { __ASM volatile("nop"); }
+        // Включаем все обратно
+        pwrOn();
+
+        // Небольшая задержка
+        volatile uint32_t delay = 10000;
+        while (delay--) { __ASM volatile("nop"); }
 
         // Перезагружаемся для нормальной работы
         NVIC_SystemReset();
