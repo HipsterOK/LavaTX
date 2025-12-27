@@ -266,7 +266,7 @@ void boardInit()
 {
   bool skipCharging = false;
 #if defined(RADIO_TANGO)
-  RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
+  RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | PWR_ENABLE_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
                              KEYS_RCC_AHB1Periph | RCC_AHB1Periph_GPIOA | // LCD GPIO на PA
                              AUDIO_RCC_AHB1Periph |
                              ADC_RCC_AHB1Periph |
@@ -336,6 +336,19 @@ void boardInit()
   #if defined(RADIO_TANGO)
       ledPowerOn();   // зелёный LED: Пульт включён
   #endif
+
+  // Инициализация управления питанием TBS Tango (PB12)
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = PWR_ENABLE_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(PWR_ENABLE_GPIO, &GPIO_InitStructure);
+
+  // Включаем питание (PB12 = HIGH)
+  GPIO_SetBits(PWR_ENABLE_GPIO, PWR_ENABLE_GPIO_PIN);
+
   __enable_irq();
 
   hardwareOptions.pcbrev = crsfGetHWID() & ~HW_ID_MASK;
@@ -413,8 +426,9 @@ void boardOff()
   ledOff();
 #endif
 
-  // ПРОСТОЕ РЕШЕНИЕ: polling PWR_SW без управления питанием
-  // PWR_ON остается HIGH всегда
+  // Управление питанием TBS Tango через PB12 (TPS63060)
+  // Отключаем TPS63060 для полного выключения питания
+  GPIO_ResetBits(PWR_ENABLE_GPIO, PWR_ENABLE_GPIO_PIN); // PB12 = LOW - отключаем питание
 
   // Полностью выключаем все LED и подсветку
   BACKLIGHT_DISABLE();

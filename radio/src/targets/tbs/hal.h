@@ -212,9 +212,14 @@
 // PWR driver
 #define PWR_RCC_AHB1Periph (RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE)
 #define PWR_SWITCH_GPIO GPIOA
-#define PWR_SWITCH_GPIO_PIN GPIO_Pin_3 // PA.3
+#define PWR_SWITCH_GPIO_PIN GPIO_Pin_3 // PA.3 - кнопка включения
 #define PWR_ON_GPIO GPIOB
-#define PWR_ON_GPIO_PIN GPIO_Pin_12
+#define PWR_ON_GPIO_PIN GPIO_Pin_12 // PB.12 - индикация включения
+
+// Управление питанием TBS Tango через PB12 (TPS63060 enable)
+#define PWR_ENABLE_RCC_AHB1Periph RCC_AHB1Periph_GPIOB
+#define PWR_ENABLE_GPIO GPIOB
+#define PWR_ENABLE_GPIO_PIN GPIO_Pin_12 // PB.12 - управление питанием
 
 // Charger
 #if defined(RADIO_TANGO)
