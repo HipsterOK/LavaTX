@@ -207,27 +207,20 @@ void lcdRefresh(bool wait)
   for (uint8_t page = 0; page < 8; page++)
   {
     LCD_CS_LOW();
+
     LCD_DC_LOW();
     spiWrite(0xB0 | page);
     spiWrite(0x00 | (SSD1306_X_OFFSET & 0x0F));
     spiWrite(0x10 | ((SSD1306_X_OFFSET >> 4) & 0x0F));
-    // Дожидаемся, что SPI освободился после отправки команд!
-    while (LCD_SPI->SR & SPI_SR_BSY)
-      ;
+
     LCD_DC_HIGH();
 
-    DMA_Cmd(LCD_DMA_Stream, DISABLE);
-    DMA_ClearFlag(LCD_DMA_Stream, LCD_DMA_FLAGS); // Use your macro!
-    LCD_DMA_Stream->M0AR = (uint32_t)&displayBuf[page * 128];
-    LCD_DMA_Stream->NDTR = 128;
-    lcd_busy = true;
+    for (uint8_t col = 0; col < 128; col++)
+    {
+      spiWrite(displayBuf[page * 128 + col]);
+    }
 
-    SPI_I2S_DMACmd(LCD_SPI, SPI_I2S_DMAReq_Tx, ENABLE);
-    DMA_Cmd(LCD_DMA_Stream, ENABLE);
-
-    while (lcd_busy)
-      ; // Ждем окончания передачи этого page
-    // Не трогай CS тут! Только в IRQ!
+    LCD_CS_HIGH();
   }
 }
 
@@ -300,7 +293,7 @@ void lcdAdjustContrast(uint8_t val)
 }
 void lcdRefreshWait(void)
 {
-    while (lcd_busy);
+    // Ничего не делаем - передача синхронная
 }
 
 void lcdSetRefVolt(uint8_t val)
