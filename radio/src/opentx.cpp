@@ -112,6 +112,12 @@ void per10ms()
   g_tmr10ms++;
 
 #if defined(RADIO_FAMILY_TBS) && !defined(SIMU)
+  // Мониторинг кнопки питания
+  extern void powerButtonMonitor();
+  powerButtonMonitor();
+#endif
+
+#if defined(RADIO_FAMILY_TBS) && !defined(SIMU)
   // workaround to deal with faulty scheduler after entering USB MSD mode for Tango2
   if (usbPlugged() && getSelectedUsbMode() == USB_MASS_STORAGE_MODE) {
     WATCHDOG_SUSPEND(200);

@@ -369,7 +369,17 @@ void boardInit()
 #endif
 
 #if defined(PWR_BUTTON_PRESS)
-  // PWR_ON будет установлен в конце boardInit()
+  // PWR_SW должен держать питание включенным
+  // Если PWR_SW нажат - включаем PWR_ON
+  if (pwrPressed()) {
+    TRACE("PWR_SW PRESSED - MAINTAINING POWER\n");
+    pwrOn();
+  } else {
+    // PWR_SW не нажат - но мы все равно включаемся
+    // (предполагаем, что питание уже включено аппаратно)
+    TRACE("NORMAL POWERUP\n");
+    pwrOn();
+  }
 #endif
 
   if (!UNEXPECTED_SHUTDOWN())
@@ -380,7 +390,26 @@ void boardInit()
     runPwrOffCharging();
   }
 
-  // PWR_ON теперь управляется в boardOff() при пробуждении
+  // PWR_ON теперь управляется PWR_SW постоянно
+}
+
+// Функция для постоянного мониторинга PWR_SW
+void powerButtonMonitor()
+{
+  static bool lastPressed = false;
+  bool currentlyPressed = pwrPressed();
+
+  if (currentlyPressed && !lastPressed) {
+    // Кнопка только что нажата - включаем PWR_ON
+    TRACE("PWR_SW PRESSED - POWER ON\n");
+    pwrOn();
+  } else if (!currentlyPressed && lastPressed) {
+    // Кнопка отпущена - можно выключить PWR_ON
+    TRACE("PWR_SW RELEASED\n");
+    // Не выключаем сразу, ждем команды выключения
+  }
+
+  lastPressed = currentlyPressed;
 }
 
 void boardOff()
@@ -411,80 +440,41 @@ void boardOff()
   ledOff();
 #endif
 
-  // ПРАВИЛЬНЫЙ STOP РЕЖИМ с EXTI wakeup
-  // Настраиваем EXTI3 для wakeup из STOP режима (без NVIC прерывания)
+  // ВЫКЛЮЧЕНИЕ: ждем отпускания кнопки, затем отключаем питание
+  TRACE("POWER OFF - WAITING FOR BUTTON RELEASE\n");
 
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-  SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource3);
-
-  EXTI_InitTypeDef EXTI_InitStructure;
-  EXTI_InitStructure.EXTI_Line = EXTI_Line3;
-  EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Event;  // Event mode для wakeup
-  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
-  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-  EXTI_Init(&EXTI_InitStructure);
-
-  // Выключаем питание (TPS63060)
-  pwrOff();
-
-  // Полностью выключаем все LED и подсветку
+  // Выключаем все LED и подсветку
   BACKLIGHT_DISABLE();
 #if defined(CHARGING_LEDS)
   ledOff();
 #endif
 
-  // Отключаем GPIO для подсветки и LED
+  // Отключаем GPIO для LED
   GPIO_ResetBits(GPIOE, GPIO_Pin_12); // Подсветка кнопок PE12
   GPIO_ResetBits(GPIOE, GPIO_Pin_8);  // LED_LOW_BATT PE8
   GPIO_ResetBits(GPIOE, GPIO_Pin_9);  // LED_PWR_ON PE9
   GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10
   GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11
 
-  // Отключаем тактирование GPIO B,C,D,E для минимального потребления
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, DISABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, DISABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, DISABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, DISABLE);
-
   // Очищаем экран
   lcdClear();
   lcdOff();
 
-  // Отключаем ненужную периферию
-  SysTick->CTRL = 0;
+  // Ждем пока кнопка будет отпущена
+  while (pwrPressed()) {
+    WDG_RESET();
+  }
 
-  // Входим в STOP режим
-  PWR->CR |= PWR_CR_CWUF;     // Clear wakeup flag
-  PWR->CR &= ~PWR_CR_PDDS;    // STOP mode (не STANDBY)
-  SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+  TRACE("BUTTON RELEASED - SHUTTING DOWN\n");
 
-  // Включаем wakeup от EXTI
-  PWR->CSR |= PWR_CSR_EWUP;
+  // Теперь отключаем PWR_ON - TPS63060 отключится
+  pwrOff();
 
-  TRACE("ENTERING STOP MODE\n");
-  __WFE(); // Входим в STOP режим, проснемся от EXTI3
-
-  // Сюда попадаем после пробуждения
-  TRACE("WAKEUP FROM STOP MODE\n");
-
-  // Восстанавливаем системные настройки
-  SystemInit();
-
-  // Включаем тактирование GPIO обратно
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
-
-  // Включаем питание обратно
-  pwrOn();
-
-  // Небольшая задержка для стабилизации
-  volatile uint32_t delay = 10000;
-  while (delay--) { __ASM volatile("nop"); }
-
-  // Перезагружаемся для нормальной работы
-  NVIC_SystemReset();
+  // Полное отключение питания
+  while (1) {
+    WDG_RESET();
+    // Система остается активной до отключения питания
+  }
 
   // this function must not return!
 }
