@@ -40,8 +40,8 @@ void pwrOff()
 
 bool pwrPressed()
 {
-  // Для TBS TANGO пробуем HIGH активный (зависит от схемы платы)
-  return GPIO_ReadInputDataBit(PWR_SWITCH_GPIO, PWR_SWITCH_GPIO_PIN) == Bit_SET;
+  // Возвращаемся к LOW активному (стандартный pull-up)
+  return GPIO_ReadInputDataBit(PWR_SWITCH_GPIO, PWR_SWITCH_GPIO_PIN) == Bit_RESET;
 }
 
 void pwrResetHandler()

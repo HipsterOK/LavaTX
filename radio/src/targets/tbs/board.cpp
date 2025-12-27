@@ -369,10 +369,7 @@ void boardInit()
 #endif
 
 #if defined(PWR_BUTTON_PRESS)
-  // Если кнопка питания нажата - включаем PWR_ON
-  if (pwrPressed()) {
-    pwrOn();
-  }
+  // PWR_ON будет установлен в конце boardInit()
 #endif
 
   if (!UNEXPECTED_SHUTDOWN())
@@ -414,6 +411,9 @@ void boardOff()
   ledOff();
 #endif
 
+  // Выключаем питание СРАЗУ, не дожидаясь отпускания кнопки
+  pwrOff();
+
   while (pwrPressed())
   {
     WDG_RESET();
@@ -428,8 +428,6 @@ void boardOff()
   // Приводит к самовключению через pwrResetHandler()
   // if (usbPlugged())
   //   NVIC_SystemReset();
-
-  pwrOff(); // Выключаем питание через TPS63060
 
   // disable interrupts
   __disable_irq();
