@@ -332,6 +332,20 @@ enum Analogs {
 #define STICKS_PWM_ENABLED()            false
 #endif
 
+// Общие определения для всех плат TBS
+#ifndef NUM_SWITCHES
+#define NUM_SWITCHES                    6
+#endif
+#ifndef STORAGE_NUM_SWITCHES
+#define STORAGE_NUM_SWITCHES            NUM_SWITCHES
+#endif
+#ifndef STORAGE_NUM_SWITCHES_POSITIONS
+#define STORAGE_NUM_SWITCHES_POSITIONS  (STORAGE_NUM_SWITCHES * 3)
+#endif
+#ifndef DEFAULT_SWITCH_CONFIG
+#define DEFAULT_SWITCH_CONFIG           (SWITCH_TOGGLE << 10) + (SWITCH_TOGGLE << 8) + (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_3POS << 0)
+#endif
+
 #if !defined(NUM_FUNCTIONS_SWITCHES)
   #define NUM_FUNCTIONS_SWITCHES          0
 #endif

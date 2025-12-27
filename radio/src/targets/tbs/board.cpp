@@ -503,21 +503,6 @@ void boardOff()
       TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
     }
   }
-    // The power key should be released by now, but we must make sure
-    if (!pwrPressed())
-    {
-      // Put the CPU into sleep to reduce the consumption,
-      // it might help with the RTC reset issue
-      PWR->CR |= PWR_CR_CWUF;
-      /* Select STANDBY mode */
-      PWR->CR |= PWR_CR_PDDS;
-      /* Set SLEEPDEEP bit of Cortex System Control Register */
-      SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-      /* Request Wait For Event */
-      __WFE();
-    }
-#endif
-  }
 
   // this function must not return!
 }
