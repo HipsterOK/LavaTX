@@ -19,7 +19,7 @@
  */
 
 #include "opentx.h"
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
 void backlightInit(void)
 {
   // Для RADIO_TANGO подсветка управляется через GPIO
