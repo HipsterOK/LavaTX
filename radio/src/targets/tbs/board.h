@@ -213,7 +213,7 @@ enum EnumSwitches
   SW_SE,
   SW_SF,
 };
-#define IS_3POS(x)                      ((x) != SW_SA && (x) != SW_SD && (x) != SW_SE && (x) != SW_SF )
+#define IS_3POS(x)                      ((x) == SW_SA || (x) == SW_SC)
 
 enum EnumSwitchesPositions
 {
@@ -238,7 +238,7 @@ enum EnumSwitchesPositions
 };
 
 #if defined(RADIO_LAVA_ONE)
-#define NUM_SWITCHES                    6
+#define NUM_SWITCHES                    4
 #define STORAGE_NUM_SWITCHES            NUM_SWITCHES
 #define DEFAULT_SWITCH_CONFIG           (SWITCH_TOGGLE << 10) + (SWITCH_TOGGLE << 8) + (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_3POS << 0)
 
