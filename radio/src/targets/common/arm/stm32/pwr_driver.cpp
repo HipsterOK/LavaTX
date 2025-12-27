@@ -22,7 +22,7 @@ void pwrInit()
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN;
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;        // кнопка замыкает на GND
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;    // без подтяжки
   GPIO_Init(PWR_SWITCH_GPIO, &GPIO_InitStructure);
 }
 
@@ -40,7 +40,7 @@ void pwrOff()
 
 bool pwrPressed()
 {
-  // Для TBS TANGO пробуем HIGH активный
+  // HIGH активный с pull-down для TBS TANGO
   return GPIO_ReadInputDataBit(PWR_SWITCH_GPIO, PWR_SWITCH_GPIO_PIN) == Bit_SET;
 }
 

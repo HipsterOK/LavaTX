@@ -446,11 +446,15 @@ void boardOff()
       TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
     }
 
-    // Проверяем кнопку каждые ~1мс
+    // Проверяем кнопку с debounce
+    static int pressCount = 0;
     if (pwrPressed())
     {
-      // Кнопка нажата - просыпаемся
-      TRACE("WAKEUP: Power button pressed! (poll: %d)\n", pollCount);
+      pressCount++;
+      if (pressCount > 5) {  // debounce - 5 последовательных чтений
+        // Кнопка нажата - просыпаемся
+        TRACE("WAKEUP: Power button pressed! (poll: %d, debounce: %d)\n", pollCount, pressCount);
+        pressCount = 0;
 
       // Включаем все обратно
       pwrOn();
@@ -459,8 +463,12 @@ void boardOff()
       volatile uint32_t delay = 10000;
       while (delay--) { __ASM volatile("nop"); }
 
-      // Перезагружаемся для нормальной работы
-      NVIC_SystemReset();
+        // Перезагружаемся для нормальной работы
+        NVIC_SystemReset();
+      }
+    } else {
+      // Кнопка не нажата - сбрасываем счетчик debounce
+      pressCount = 0;
     }
 
     // Короткая пауза
