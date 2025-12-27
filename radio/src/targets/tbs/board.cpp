@@ -331,14 +331,26 @@ void boardInit()
   BACKLIGHT_ENABLE();
 #endif
   backlightInit();
+
+  // Индикация: система прошла backlightInit - включаем LED_LINK_OK (PE10)
+  GPIO_SetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10 - зеленый
+
   lcdInit(); // delaysInit() must be called before
   delay_ms(5);  // короткая пауза для стабилизации
   lcdClear();
   lcdRefresh();
+
+  // Индикация: LCD инициализирован - включаем LED_NO_LINK (PE11)
+  GPIO_SetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11 - красный
+
   audioInit();
   init2MhzTimer();
   init5msTimer();
   crsfInit();
+
+  // Индикация: CRSF инициализирован - выключаем LED_NO_LINK
+  GPIO_ResetBits(GPIOE, GPIO_Pin_11);
+
   usbInit();
 #if defined(CHARGING_LEDS)
   ledInit();
@@ -418,6 +430,12 @@ void boardOff()
 
   // Включаем красный LED (низкий заряд) - PE8 для индикации выключения
   GPIO_SetBits(GPIOE, GPIO_Pin_8);  // LED_LOW_BATT PE8 - красный
+
+  // Выключаем все остальные LED кроме красного и подсветки
+  GPIO_ResetBits(GPIOE, GPIO_Pin_9);  // LED_PWR_ON PE9
+  GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10
+  GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11
+  // PE12 (подсветка) остается включенной
 
   // Очищаем дисплей перед выключением
   lcdClear();
