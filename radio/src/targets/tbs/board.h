@@ -237,10 +237,10 @@ enum EnumSwitchesPositions
   SW_SF2,
 };
 
-#if defined(RADIO_TANGO)
+#if defined(RADIO_LAVA_ONE)
 #define NUM_SWITCHES                    6
 #define STORAGE_NUM_SWITCHES            NUM_SWITCHES
-#define DEFAULT_SWITCH_CONFIG           (SWITCH_TOGGLE << 10) + (SWITCH_TOGGLE << 8) + (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_2POS << 0)
+#define DEFAULT_SWITCH_CONFIG           (SWITCH_TOGGLE << 10) + (SWITCH_TOGGLE << 8) + (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_3POS << 0)
 
 #define STORAGE_NUM_SWITCHES_POSITIONS  (STORAGE_NUM_SWITCHES * 3)
 extern uint8_t g_trimEditMode;

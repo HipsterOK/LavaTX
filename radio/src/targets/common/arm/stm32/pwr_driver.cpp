@@ -138,5 +138,9 @@ void pwrResetHandler()
 
   if (WAS_RESET_BY_WATCHDOG_OR_SOFTWARE()) {
     pwrOn();
+
+    // Небольшая задержка для стабилизации питания после перезагрузки
+    volatile uint32_t delay = 1000;
+    while (delay--) { __ASM volatile("nop"); }
   }
 }

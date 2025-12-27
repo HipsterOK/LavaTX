@@ -416,7 +416,9 @@ lcdRefresh();
 
 void boardOff()
 {
-  TRACE("power off\n");
+  static int powerOffCount = 0;
+  powerOffCount++;
+  TRACE("power off #%d\n", powerOffCount);
 
 #if defined(AUDIO_MUTE_GPIO_PIN)
   GPIO_SetBits(AUDIO_MUTE_GPIO, AUDIO_MUTE_GPIO_PIN); // mute
@@ -435,35 +437,72 @@ void boardOff()
 
   BACKLIGHT_DISABLE();
 
-  while (pwrPressed())
-  {
-    WDG_RESET();
-  }
+#if defined(CHARGING_LEDS)
+  ledOff();
+#endif
 
+  // Отключаем питание TPS63060 через PWR_ON (PB12)
+  pwrOff();
+
+  // Полностью выключаем все LED и подсветку
+  BACKLIGHT_DISABLE();
+#if defined(CHARGING_LEDS)
+  ledOff();
+#endif
+
+  // Отключаем GPIO для подсветки и LED
+  GPIO_ResetBits(GPIOE, GPIO_Pin_12); // Подсветка кнопок PE12
+  GPIO_ResetBits(GPIOE, GPIO_Pin_8);  // LED_LOW_BATT PE8
+  GPIO_ResetBits(GPIOE, GPIO_Pin_9);  // LED_PWR_ON PE9
+  GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10
+  GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11
+
+  // Очищаем экран
+  lcdClear();
   lcdOff();
   SysTick->CTRL = 0; // turn off systick
 
-  // immediate software reset to do power off charging
-  if (usbPlugged())
-    NVIC_SystemReset();
-
-  pwrOff();
-
-  // disable interrupts
-  __disable_irq();
-
-  volatile uint32_t tmr = get_tmr10ms();
-  while (get_tmr10ms() - tmr <= 100)
-  {
-    WDG_RESET();
-  }
+  TRACE("ENTERING POWER OFF POLLING MODE\n");
+  static int pollCount = 0;
+  int pressCount = 0;
 
   while (1)
   {
+    if (pwrPressed())
+    {
+      pressCount++;
+      if (pressCount > 5) { // 5 последовательных чтений для debounce
+        TRACE("WAKEUP: Power button pressed! (poll: %d, debounce: %d)\n", pollCount, pressCount);
+        // Очищаем дисплей перед перезагрузкой
+        lcdClear();
+
+        // Включаем питание TPS63060
+        pwrOn();
+
+        // Ждем пока TPS63060 включится (нужно время для стабилизации питания)
+        volatile uint32_t delay = 50000; // увеличенная задержка для TPS63060
+        while (delay--) { __ASM volatile("nop"); }
+
+        TRACE("PWR_ON activated, resetting system...\n");
+
+        // Перезагружаемся для нормальной работы
+        NVIC_SystemReset();
+      }
+    }
+    else
+    {
+      pressCount = 0; // Сброс счетчика, если кнопка отпущена
+    }
+
+    volatile uint32_t delay = 1000; // ~1ms delay
+    while (delay--) { __ASM volatile("nop"); }
+
     WDG_RESET();
-#if defined(PWR_BUTTON_PRESS)
-    // needs watchdog reset because CPU is still running while
-    // the power key is held pressed by the user.
+    pollCount++;
+    if (pollCount % 100 == 0) { // Выводим сообщение каждые ~100ms
+      TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
+    }
+  }
     // The power key should be released by now, but we must make sure
     if (!pwrPressed())
     {

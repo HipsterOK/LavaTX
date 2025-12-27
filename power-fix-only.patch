@@ -1,0 +1,66 @@
+diff --git a/radio/src/targets/common/arm/stm32/pwr_driver.cpp b/radio/src/targets/common/arm/stm32/pwr_driver.cpp
+index f77b4bd..5ceeab6 100644
+--- a/radio/src/targets/common/arm/stm32/pwr_driver.cpp
++++ b/radio/src/targets/common/arm/stm32/pwr_driver.cpp
+@@ -8,7 +8,7 @@ void pwrInit()
+   // GPIOB уже включен в SystemInit(), но включаем для надежности
+   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+ 
+-  // --- PWR_ON (PB12) — индикатор включения (согласно таблице пользователя) ---
++  // --- PWR_ON (PB12) — управление EN пином TPS63060 ---
+   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
+   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
+   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+@@ -40,7 +40,7 @@ void pwrOff()
+ 
+ bool pwrPressed()
+ {
+-  // LOW активный для TBS Lava One
++  // LOW активный для TBS TANGO
+   return GPIO_ReadInputDataBit(PWR_SWITCH_GPIO, PWR_SWITCH_GPIO_PIN) == Bit_RESET;
+ }
+ 
+@@ -50,7 +50,7 @@ void pwrResetHandler()
+   __ASM volatile("nop");
+--
+-  #if defined(RADIO_LAVA_ONE)
++  #if defined(RADIO_TANGO)
+       ledPowerOn();   // зелёный LED: Пульт включён
+   #endif
+   __enable_irq();
+@@ -413,8 +413,8 @@ void boardOff()
+   ledOff();
+ #endif
+ 
+-  // ПРОСТОЕ РЕШЕНИЕ: polling PWR_SW без управления питанием
+-  // PWR_ON остается HIGH всегда
++  // Отключаем питание TPS63060 через PWR_ON (PB12)
++  pwrOff();
+ 
+   // Полностью выключаем все LED и подсветку
+   BACKLIGHT_DISABLE();
+@@ -458,13 +458,15 @@ void boardOff()
+         // Очищаем дисплей перед перезагрузкой
+         lcdClear();
+ 
+-        // Включаем все обратно
++        // Включаем питание TPS63060
+         pwrOn();
+ 
+-        // Небольшая задержка
+-        volatile uint32_t delay = 10000;
++        // Ждем пока TPS63060 включится (нужно время для стабилизации питания)
++        volatile uint32_t delay = 50000; // увеличенная задержка для TPS63060
+         while (delay--) { __ASM volatile("nop"); }
+ 
++        TRACE("PWR_ON activated, resetting system...\n");
++
+         // Перезагружаемся для нормальной работы
+         NVIC_SystemReset();
+       }
+@@ -488,7 +490,7 @@ uint16_t getBatteryVoltage()
+ {
+  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
+   float batt_scale = 0;
+-#if defined(RADIO_LAVA_ONE)
++#if defined(RADIO_TANGO)

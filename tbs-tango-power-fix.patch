@@ -1,0 +1,126 @@
+diff --git a/radio/src/targets/common/arm/stm32/pwr_driver.cpp b/radio/src/targets/common/arm/stm32/pwr_driver.cpp
+index f77b4bd..5ceeab6 100644
+--- a/radio/src/targets/common/arm/stm32/pwr_driver.cpp
++++ b/radio/src/targets/common/arm/stm32/pwr_driver.cpp
+@@ -8,7 +8,7 @@ void pwrInit()
+   // GPIOB уже включен в SystemInit(), но включаем для надежности
+   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+ 
+-  // --- PWR_ON (PB12) — индикатор включения (согласно таблице пользователя) ---
++  // --- PWR_ON (PB12) — управление EN пином TPS63060 ---
+   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
+   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
+   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+@@ -40,7 +40,7 @@ void pwrOff()
+ 
+ bool pwrPressed()
+ {
+-  // LOW активный для TBS Lava One
++  // LOW активный для TBS TANGO
+   return GPIO_ReadInputDataBit(PWR_SWITCH_GPIO, PWR_SWITCH_GPIO_PIN) == Bit_RESET;
+ }
+ 
+@@ -50,7 +50,7 @@ void pwrResetHandler()
+   __ASM volatile("nop");
+   __ASM volatile("nop");
+ 
+-  // Для TBS Lava One: включаем только индикатор питания
++  // Для TBS TANGO: включаем только индикатор питания
+   // Питание управляется аппаратно через кнопку Power_SW (PA3)
+   pwrOn();
+ }
+diff --git a/radio/src/targets/tbs/board.cpp b/radio/src/targets/tbs/board.cpp
+index 2d518f5..96c4249 100644
+--- a/radio/src/targets/tbs/board.cpp
++++ b/radio/src/targets/tbs/board.cpp
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (C) LavaTX
++ * Copyright (C) OpenTX
+  *
+  * Based on code named
+  *   th9x - http://code.google.com/p/th9x
+@@ -78,7 +78,7 @@ void intmoduleStop()
+ {
+ }
+ 
+-#if defined(RADIO_LAVA_ONE)
++#if defined(RADIO_TANGO)
+ #define VBATT_W (LCD_W - 40)
+ #define VBATT_H (45)
+ #define VBATT_X (((LCD_W - VBATT_W) / 2) - 2)
+@@ -265,7 +265,7 @@ static void showBatteryDebugPopup()
+ void boardInit()
+ {
+   bool skipCharging = false;
+-#if defined(RADIO_LAVA_ONE)
++#if defined(RADIO_TANGO)
+   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
+                              KEYS_RCC_AHB1Periph | RCC_AHB1Periph_GPIOA | // LCD GPIO на PA
+                              AUDIO_RCC_AHB1Periph |
+@@ -333,7 +333,7 @@ void boardInit()
+ #if defined(USB_CHARGER)
+   usbChargerInit();
+ #endif
+-  #if defined(RADIO_LAVA_ONE)
++  #if defined(RADIO_TANGO)
+       ledPowerOn();   // зелёный LED: Пульт включён
+   #endif
+   __enable_irq();
+@@ -413,8 +413,8 @@ void boardOff()
+   ledOff();
+ #endif
+ 
+-  // ПРОСТОЕ РЕШЕНИЕ: polling PWR_SW без управления питанием
+-  // PWR_ON остается HIGH всегда
++  // Отключаем питание TPS63060 через PWR_ON (PB12)
++  pwrOff();
+ 
+   // Полностью выключаем все LED и подсветку
+   BACKLIGHT_DISABLE();
+@@ -458,13 +458,15 @@ void boardOff()
+         // Очищаем дисплей перед перезагрузкой
+         lcdClear();
+ 
+-        // Включаем все обратно
++        // Включаем питание TPS63060
+         pwrOn();
+ 
+-        // Небольшая задержка
+-        volatile uint32_t delay = 10000;
++        // Ждем пока TPS63060 включится (нужно время для стабилизации питания)
++        volatile uint32_t delay = 50000; // увеличенная задержка для TPS63060
+         while (delay--) { __ASM volatile("nop"); }
+ 
++        TRACE("PWR_ON activated, resetting system...\n");
++
+         // Перезагружаемся для нормальной работы
+         NVIC_SystemReset();
+       }
+@@ -488,7 +490,7 @@ uint16_t getBatteryVoltage()
+ {
+  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
+   float batt_scale = 0;
+-#if defined(RADIO_LAVA_ONE)
++#if defined(RADIO_TANGO)
+   if (IS_PCBREV_01())
+     batt_scale = BATT_SCALE;
+   else 
+@@ -565,7 +567,7 @@ void trampolineInit(void)
+ void loadDefaultRadioSettings(void)
+ {
+   // this is to reset incorrect radio settings. should be removed later.
+-#if defined(RADIO_LAVA_ONE)
++#if defined(RADIO_TANGO)
+   g_eeGeneral.backlightMode = g_eeGeneral.backlightMode < e_backlight_mode_keys ? e_backlight_mode_keys : g_eeGeneral.backlightMode;
+ #endif
+   g_eeGeneral.lightAutoOff = g_eeGeneral.lightAutoOff < BACKLIGHT_TIMEOUT_MIN ? 6 : g_eeGeneral.lightAutoOff;
+@@ -777,7 +779,7 @@ extern "C"
+         break;
+     }
+ 
+-    hf_printf("\r\n\n***LavaTX Hard Fault Handler Debug Printing***\r\n");
++    hf_printf("\r\n\n***OpenTX Hard Fault Handler Debug Printing***\r\n");
+     hf_printf("R0\t\t= 0x%.8x\r\n", stacked_r0);
+     hf_printf("R1\t\t= 0x%.8x\r\n", stacked_r1);
+     hf_printf("R2\t\t= 0x%.8x\r\n", stacked_r2);
