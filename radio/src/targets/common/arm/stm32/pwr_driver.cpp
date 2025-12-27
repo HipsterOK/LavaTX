@@ -50,7 +50,19 @@ void pwrResetHandler()
   __ASM volatile("nop");
   __ASM volatile("nop");
 
-  // Для TBS TANGO: включаем только индикатор питания
-  // Питание управляется аппаратно через кнопку Power_SW (PA3)
+  // Для TBS TANGO: повторная инициализация PB12 после сброса
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
+  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
+  GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
+
+  // Включаем питание сразу после сброса
   pwrOn();
+
+  // Небольшая задержка для стабилизации TPS63060
+  volatile uint32_t delay = 10000;
+  while (delay--) { __ASM volatile("nop"); }
 }
