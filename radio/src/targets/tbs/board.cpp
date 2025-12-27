@@ -23,6 +23,9 @@
 #include "hall90393.h"
 #include "led_driver.h"
 
+extern void drawChargingState(void);
+extern void drawFullyCharged(void);
+
 #if defined(__cplusplus) && !defined(SIMU)
 extern "C"
 {
@@ -144,7 +147,7 @@ static void drawFullyCharged(void)
 #define ANIMATION_UPDATE_TIME 50
 #define KEY_PRESS_UPDATE_TIME 10
 #define CHARGING_TO_CHARGED_DELAY 500
-#define NUM_OF_KEY_GROUPS 6
+#define NUM_OF_KEY_GROUPS 5
 static void runPwrOffCharging(void)
 {
   tmr10ms_t tmrAdc = 0;
@@ -154,9 +157,6 @@ static void runPwrOffCharging(void)
   uint32_t lastChargingTimestamp = 0;
 #if defined(CHARGING_ANIMATION)
   tmr10ms_t tmrBacklight = 0;
-  uint16_t keysState[NUM_OF_KEY_GROUPS];
-  GPIO_TypeDef *keysPort[NUM_OF_KEY_GROUPS] = {GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, GPIOF};
-  uint16_t keysPin[NUM_OF_KEY_GROUPS] = {KEYS_GPIOA_PINS, KEYS_GPIOB_PINS, KEYS_GPIOC_PINS, KEYS_GPIOD_PINS, KEYS_GPIOE_PINS, KEYS_GPIOF_PINS};
 #endif
 #if defined(CHARGING_LEDS)
   bool isLedCharging = false;
