@@ -369,10 +369,9 @@ void boardInit()
 #endif
 
 #if defined(PWR_BUTTON_PRESS)
-  if (WAS_RESET_BY_WATCHDOG_OR_SOFTWARE())
-  {
-    pwrOn();
-  }
+  // Включаем питание при любом запуске системы
+  // Это нужно для нормального включения кнопкой питания
+  pwrOn();
 #endif
 
   if (!UNEXPECTED_SHUTDOWN())
@@ -415,6 +414,8 @@ void boardOff()
     WDG_RESET();
   }
 
+  // Очищаем экран перед выключением
+  lcdClear();
   lcdOff();
   SysTick->CTRL = 0; // turn off systick
 
