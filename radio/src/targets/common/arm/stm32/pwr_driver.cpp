@@ -8,7 +8,7 @@ void pwrInit()
   // GPIOB уже включен в SystemInit(), но включаем для надежности
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-  // --- PWR_ON (PB12) — индикатор включения (согласно таблице пользователя) ---
+  // --- PWR_ON (PB12) — управление EN пином TPS63060 ---
   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
@@ -40,7 +40,7 @@ void pwrOff()
 
 bool pwrPressed()
 {
-  // LOW активный для TBS Lava One
+  // LOW активный для TBS TANGO
   return GPIO_ReadInputDataBit(PWR_SWITCH_GPIO, PWR_SWITCH_GPIO_PIN) == Bit_RESET;
 }
 
@@ -50,7 +50,7 @@ void pwrResetHandler()
   __ASM volatile("nop");
   __ASM volatile("nop");
 
-  // Для TBS Lava One: включаем только индикатор питания
+  // Для TBS TANGO: включаем только индикатор питания
   // Питание управляется аппаратно через кнопку Power_SW (PA3)
   pwrOn();
 }
