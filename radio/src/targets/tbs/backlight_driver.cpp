@@ -20,20 +20,30 @@
 
 #include "opentx.h"
 #if defined(RADIO_TANGO)
+void backlightInit(void)
+{
+  // Для RADIO_TANGO подсветка управляется через GPIO
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = BACKLIGHT_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_Init(BACKLIGHT_GPIO, &GPIO_InitStructure);
+}
+
+void backlightDisable(void)
+{
+  GPIO_ResetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
+}
+
 void backlightEnable(uint8_t level)
 {
-  // // the scale is divided into two groups since the affect of contrast configuration is not so linear
-  // // system brightness 0  to 84  map to screen contrast 0   to 127
-  // // system brightness 81 to 100 map to screen contrast 127 to 255
-
-  // uint8_t value = 100 - level;
-  // if (value >= 84)
-  //   value = ((value-84) << 3) + 127;        // (value-84)*128/16+127;
-  // else
-  //   value = (value << 5) / 21;              // value*128/84
-
-  // lcdAdjustContrast(value);
-  // lcdOn();
+  if (level > 0) {
+    GPIO_SetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
+  } else {
+    GPIO_ResetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
+  }
 }
 #elif defined(RADIO_MAMBO)
 void backlightInit()

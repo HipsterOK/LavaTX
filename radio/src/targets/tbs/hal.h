@@ -385,8 +385,10 @@
 
 // BackLight
 #if defined(RADIO_TANGO)
-#define BACKLIGHT_RCC_AHB1Periph 0
+#define BACKLIGHT_RCC_AHB1Periph RCC_AHB1Periph_GPIOE
 #define BACKLIGHT_RCC_APB1Periph 0
+#define BACKLIGHT_GPIO GPIOE
+#define BACKLIGHT_GPIO_PIN GPIO_Pin_12 // PE.12 (подсветка кнопок)
 #else
 #define BACKLIGHT_RCC_AHB1Periph RCC_AHB1Periph_GPIOD
 #define BACKLIGHT_RCC_APB1Periph RCC_APB1Periph_TIM4
