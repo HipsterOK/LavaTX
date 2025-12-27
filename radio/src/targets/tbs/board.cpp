@@ -385,7 +385,9 @@ void boardInit()
 
 void boardOff()
 {
-  TRACE("power off\n");
+  static int powerOffCount = 0;
+  powerOffCount++;
+  TRACE("power off #%d\n", powerOffCount);
 
 #if defined(AUDIO_MUTE_GPIO_PIN)
   GPIO_SetBits(AUDIO_MUTE_GPIO, AUDIO_MUTE_GPIO_PIN); // mute
@@ -467,6 +469,10 @@ void boardOff()
   // Небольшая задержка чтобы GPIO точно выключились
   delay_ms(1);
 
+  // Отключаем watchdog перед сном (чтобы не сбрасывался в STOP режиме)
+  IWDG->KR = 0xAAAA; // Reset watchdog
+  IWDG->KR = 0xCCCC; // Start watchdog (но он будет в низком потреблении)
+
   // Отключаем ненужную периферию для снижения потребления
   SysTick->CTRL = 0; // turn off systick
 
@@ -484,6 +490,9 @@ void boardOff()
   // Восстанавливаем системные настройки
   SystemInit();
 
+  // Переинициализируем watchdog после пробуждения
+  watchdogInit(WDG_DURATION);
+
   // Включаем тактирование GPIO обратно (GPIOA уже включен)
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
@@ -492,6 +501,12 @@ void boardOff()
 
   // Включаем питание обратно
   pwrOn();
+
+  // Небольшая задержка для стабилизации
+  volatile uint32_t delay = 10000;
+  while (delay--) { __ASM volatile("nop"); }
+
+  // TRACE("WAKEUP: System reset after wakeup");
 
   // Перезагружаемся для нормальной работы
   NVIC_SystemReset();
@@ -532,6 +547,13 @@ extern "C" void EXTI3_IRQHandler(void)
     if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_3) == Bit_RESET) {
       // Кнопка нажата - просыпаемся
       // TRACE("WAKEUP: PWR_SW pressed");
+
+      // Отключаем EXTI чтобы предотвратить повторные срабатывания
+      EXTI_InitTypeDef EXTI_InitStructure;
+      EXTI_InitStructure.EXTI_Line = EXTI_Line3;
+      EXTI_InitStructure.EXTI_LineCmd = DISABLE;
+      EXTI_Init(&EXTI_InitStructure);
+
     } else {
       // Ложное срабатывание - игнорируем
       return;
