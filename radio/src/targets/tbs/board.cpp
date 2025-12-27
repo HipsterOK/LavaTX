@@ -444,6 +444,22 @@ void boardOff()
   lcdClear();
   lcdOff();
 
+  // ПОСЛЕДНЕЕ выключение подсветки и LED перед сном
+  BACKLIGHT_DISABLE();
+#if defined(CHARGING_LEDS)
+  ledOff();
+#endif
+
+  // Отключаем GPIO для подсветки и LED чтобы не моргали
+  GPIO_ResetBits(GPIOE, GPIO_Pin_12); // Подсветка кнопок PE12
+  GPIO_ResetBits(GPIOE, GPIO_Pin_8);  // LED_LOW_BATT PE8
+  GPIO_ResetBits(GPIOE, GPIO_Pin_9);  // LED_PWR_ON PE9
+  GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10
+  GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11
+
+  // Отключаем тактирование GPIOE чтобы полностью выключить LED и подсветку
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, DISABLE);
+
   // Отключаем ненужную периферию для снижения потребления
   SysTick->CTRL = 0; // turn off systick
 
@@ -460,6 +476,9 @@ void boardOff()
   // Сюда попадаем после пробуждения
   // Восстанавливаем системные настройки
   SystemInit();
+
+  // Включаем тактирование GPIOE обратно для LED и подсветки
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
   // Включаем питание обратно
   pwrOn();
