@@ -540,7 +540,7 @@ void boardOff()
   EXTI_InitTypeDef EXTI_InitStructure;
   EXTI_InitStructure.EXTI_Line = EXTI_Line3;
   EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling; // PA3 active LOW
+  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising; // PA3 active LOW, wakeup on release
   EXTI_InitStructure.EXTI_LineCmd = ENABLE;
   EXTI_Init(&EXTI_InitStructure);
 
@@ -551,43 +551,53 @@ void boardOff()
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 
-  // Входим в STOP mode
-  PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
+  // Альтернативный подход: глубокий sleep без STOP mode
+  // Отключаем все кроме основных систем
+  TRACE("ENTERING DEEP SLEEP MODE\n");
 
-  // После wakeup из STOP mode система продолжает выполнение отсюда
-  TRACE("WAKEUP FROM STOP MODE\n");
+  // Отключаем USB для экономии энергии
+  usbStop();
 
-  // Восстанавливаем системные настройки после wakeup
-  SystemInit();
+  // Очищаем экран
+  lcdClear();
+  lcdOff();
 
-  // Включаем RCC для GPIO
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+  // Простой polling loop с минимальным потреблением
+  while (1) {
+    // Проверяем кнопку каждые 100мс
+    if (pwrPressed()) {
+      TRACE("WAKEUP: Power button pressed in sleep mode\n");
 
-  // Переконфигурируем PB12 обратно как output HIGH
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
-  GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
-  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN); // HIGH для питания
+      // Включаем RCC для GPIO
+      RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-  // Включаем питание
-  pwrOn();
+      // Переконфигурируем PB12 обратно как output HIGH
+      GPIO_InitTypeDef GPIO_InitStructure;
+      GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
+      GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+      GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+      GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+      GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+      GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
+      GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN); // HIGH для питания
 
-  // Возвращаемся в boardInit для нормальной работы
-  return;
-}
+      // Включаем питание
+      pwrOn();
 
-// Interrupt handler для wakeup из STOP mode
-extern "C" void EXTI3_IRQHandler(void)
-{
-  if (EXTI_GetITStatus(EXTI_Line3) != RESET) {
-    EXTI_ClearITPendingBit(EXTI_Line3);
-    // Просто очищаем флаг - PWR_EnterSTOPMode завершится автоматически
+      // Возвращаемся в boardInit для нормальной работы
+      return;
+    }
+
+    // Короткая задержка для экономии энергии
+    volatile uint32_t delay = 10000; // ~1ms
+    while (delay--) { __ASM volatile("nop"); }
+
+    // Сбрасываем watchdog если он все еще активен
+    IWDG->KR = 0xAAAA;
   }
 }
+
+// Interrupt handler не нужен для polling подхода
 
 uint16_t getBatteryVoltage()
 {
