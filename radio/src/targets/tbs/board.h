@@ -617,8 +617,8 @@ void extmoduleSendInvertedByte(uint8_t byte);
   #define IS_CHARGING_FAULT()         (usbPlugged() && GPIO_ReadInputDataBit( CHARGER_FAULT_GPIO, CHARGER_FAULT_GPIO_PIN ) == Bit_RESET)
 #elif defined(RADIO_TANGO)
   // Для TBS Tango используем USB VBUS (PA9) для определения зарядки
-  // Инвертированная логика: LOW = зарядка активна, HIGH = зарядка не активна
-  #define IS_CHARGING_STATE()         (GPIO_ReadInputDataBit( GPIOA, GPIO_Pin_9 ) == Bit_RESET)
+  // Логика: LOW = зарядка активна (USB подключен), HIGH = зарядка не активна
+  #define IS_CHARGING_STATE()         (usbPlugged() && GPIO_ReadInputDataBit( GPIOA, GPIO_Pin_9 ) == Bit_RESET)
   #define IS_CHARGING_FAULT()         (0)
 #else
   #define IS_CHARGING_STATE()         (GPIO_ReadInputDataBit( CHARGER_STATE_GPIO, CHARGER_STATE_GPIO_PIN ) == Bit_RESET)

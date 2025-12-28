@@ -72,8 +72,8 @@
   #define NUM_ANALOGS_ADC              11
   #define NUM_ANALOGS_ADC_EXT          (NUM_ANALOGS - NUM_ANALOGS_ADC)
 #elif defined(RADIO_TANGO)
-  #define FIRST_ANALOG_ADC             TX_VOLTAGE
-  #define NUM_ANALOGS_ADC              (NUM_ANALOGS - FIRST_ANALOG_ADC)
+  #define FIRST_ANALOG_ADC             0  // Считываем все каналы включая стики
+  #define NUM_ANALOGS_ADC              NUM_ANALOGS
 #elif defined(RADIO_MAMBO)
   #define FIRST_ANALOG_ADC             POT1
   #define NUM_ANALOGS_ADC              (NUM_ANALOGS - FIRST_ANALOG_ADC)
@@ -145,8 +145,8 @@ void adcInit()
   ADC_MAIN->SQR2 = (ADC_CHANNEL_BATT << 0) + (ADC_Channel_Vbat << 5);
   ADC_MAIN->SQR3 = (ADC_CHANNEL_STICK_LH << 0) + (ADC_CHANNEL_STICK_LV << 5) + (ADC_CHANNEL_STICK_RV << 10) + (ADC_CHANNEL_STICK_RH << 15);
 #elif defined(RADIO_TANGO)
-  ADC_MAIN->SQR2 = 0;
-  ADC_MAIN->SQR3 = (ADC_CHANNEL_BATT<<0) + (ADC_Channel_Vbat<<5);
+  ADC_MAIN->SQR2 = (ADC_CHANNEL_BATT << 0) + (ADC_Channel_Vbat << 5);
+  ADC_MAIN->SQR3 = 0;  // Стики не используются через ADC, только батарея
 #elif defined(RADIO_MAMBO)
   ADC_MAIN->SQR2 = (ADC_CHANNEL_SWITCH_D << 0) + (ADC_CHANNEL_BATT << 5) + (ADC_Channel_Vbat << 10);
   ADC_MAIN->SQR3 = (ADC_CHANNEL_POT1 << 0) + (ADC_CHANNEL_POT2 << 5) + (ADC_CHANNEL_TRIM << 10) + (ADC_CHANNEL_SWITCH_A << 15) + (ADC_CHANNEL_SWITCH_B << 20) + (ADC_CHANNEL_SWITCH_C << 25);
@@ -287,8 +287,9 @@ void adcRead()
 
 #if defined(RADIO_FAMILY_TBS) && defined(INTERNAL_MODULE_CRSF)
   // Для TBS Tango записываем значения стиков в crossfireSharedData
+  // Стики не считываются ADC, установим фиктивные значения в середине диапазона
   for (int i = 0; i < 4; i++) {
-    crossfireSharedData.sticks[i] = adcValues[i];
+    crossfireSharedData.sticks[i] = 2048;  // Центр диапазона
   }
 #endif
 }

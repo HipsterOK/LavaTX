@@ -343,7 +343,7 @@ void boardInit()
   backlightInit(); // Инициализируем подсветку после CRSF
 
   // Индикация: CRSF инициализирован - включаем LED_NO_LINK (PE11)
-  GPIO_SetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11 - красный
+  // GPIO_SetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11 - красный
 
   usbInit(); // Включаем USB
 
