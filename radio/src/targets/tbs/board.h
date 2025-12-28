@@ -516,7 +516,9 @@ uint32_t pwrPressedDuration();
   #define isBacklightEnabled()            true
   #define backlightEnable(level)
   #define BACKLIGHT_ENABLE()
-#else
+#endif
+
+#if !defined(SIMU)
 #if defined(RADIO_LAVA_ONE)
 // Простая подсветка кнопок — включается/выключается без PWM
 void backlightInit(void);
@@ -529,11 +531,12 @@ void backlightDisable(void);
 uint8_t isBacklightEnabled(void);
 void backlightEnable(uint8_t level);
 #elif defined(RADIO_TANGO)
-// Простая подсветка кнопок — включается/выключается без PWM
+// Простая подсветка кнопок с программным PWM
 void backlightInit(void);
 void backlightDisable(void);
 void backlightEnable(uint8_t level);
 uint8_t isBacklightEnabled(void);
+void backlightUpdate(void);
 #endif
 
   #define BACKLIGHT_DISABLE()             backlightDisable()

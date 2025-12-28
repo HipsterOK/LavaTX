@@ -122,6 +122,10 @@ void per10ms()
   }
 #endif
 
+#if defined(RADIO_TANGO) && !defined(SIMU)
+  backlightUpdate(); // Обновление программного PWM для подсветки кнопок
+#endif
+
   if (watchdogTimeout) {
     watchdogTimeout -= 1;
     WDG_RESET();  // Retrigger hardware watchdog

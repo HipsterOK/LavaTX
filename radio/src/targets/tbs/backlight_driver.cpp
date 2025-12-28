@@ -2,7 +2,7 @@
  * Copyright (C) OpenTX
  *
  * Based on code named
- *   th9x - http://code.google.com/p/th9x 
+ *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
  *
@@ -19,10 +19,29 @@
  */
 
 #include "opentx.h"
+
+#if defined(RADIO_TANGO)
+// Программное управление яркостью подсветки кнопок
+static uint8_t currentBacklightLevel = 0;
+static uint8_t backlightPwmCounter = 0;
+
+void backlightUpdate()
+{
+  backlightPwmCounter++;
+  if (backlightPwmCounter >= 10) { // 100Hz PWM
+    backlightPwmCounter = 0;
+    if (currentBacklightLevel > 0 && backlightPwmCounter < currentBacklightLevel) {
+      GPIO_ResetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN); // ВКЛ (инвертированная логика)
+    } else {
+      GPIO_SetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);   // ВЫКЛ
+    }
+  }
+}
+#endif
 #if defined(RADIO_TANGO)
 void backlightInit(void)
 {
-  // Для RADIO_TANGO подсветка управляется через GPIO
+  // Для RADIO_TANGO подсветка управляется через GPIO с программным PWM
   GPIO_InitTypeDef GPIO_InitStructure;
   GPIO_InitStructure.GPIO_Pin = BACKLIGHT_GPIO_PIN;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
@@ -30,20 +49,28 @@ void backlightInit(void)
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
   GPIO_Init(BACKLIGHT_GPIO, &GPIO_InitStructure);
+
+  currentBacklightLevel = 0;
+  backlightPwmCounter = 0;
 }
 
 void backlightDisable(void)
 {
+  currentBacklightLevel = 0;
   GPIO_SetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN); // Инвертированная логика для подсветки кнопок
 }
 
 void backlightEnable(uint8_t level)
 {
-  if (level > 0) {
-    GPIO_ResetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN); // Инвертированная логика для подсветки кнопок
-  } else {
-    GPIO_SetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
-  }
+  // Программное управление яркостью через PWM
+  // level от 0 до 100, преобразуем в шкалу 0-10 для PWM
+  currentBacklightLevel = level / 10; // 0-10 диапазон
+  if (currentBacklightLevel > 10) currentBacklightLevel = 10;
+}
+
+uint8_t isBacklightEnabled(void)
+{
+  return currentBacklightLevel > 0;
 }
 #elif defined(RADIO_MAMBO)
 void backlightInit()
