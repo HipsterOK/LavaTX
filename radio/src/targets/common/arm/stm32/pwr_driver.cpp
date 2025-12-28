@@ -33,50 +33,79 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ПРОВЕРКА PB12: отключаем JTAG/SWD пины
-  // PB12 может быть JTMS/SWDIO - нужно отключить JTAG/SWD
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+  // ПРОВЕРКА PB12: полная переинициализация после SystemInit
+  // SystemInit настроил PB12 как output с pull-down, но он все равно HIGH
+  TRACE("PB12_SYSTEM_CHECK: Re-initializing PB12 after SystemInit\n");
 
-  // Отключаем JTAG, оставляем только SWD (2-wire debug)
-  // SYSCFG_MEMRMP[2:1] = 10 - JTAG-DP Disabled, SW-DP Enabled
-  SYSCFG->MEMRMP &= ~(0x3 << 1);  // Сбрасываем биты 2:1
-  SYSCFG->MEMRMP |= (0x2 << 1);   // Устанавливаем 10 (SW-DP only)
+  // Полностью сбрасываем все настройки PB12
+  GPIOB->MODER &= ~(GPIO_MODER_MODER12);     // Input mode сначала
+  GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_12);     // Push-pull
+  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);     // No pull
+  GPIOB->OSPEEDR &= ~(GPIO_OSPEEDER_OSPEEDR12); // Low speed
+  GPIOB->AFR[1] &= ~(0xF << 16);             // AF0
 
-  TRACE("PB12_JTAG_DISABLE: JTAG disabled, SWD enabled - PB12 should be GPIO\n");
+  // Небольшая задержка
+  volatile uint32_t delay = 10000;
+  while (delay--) { __ASM volatile("nop"); }
 
-  // Настраиваем PB12 как обычный GPIO
-  GPIOB->MODER &= ~(GPIO_MODER_MODER12);    // Сбрасываем
-  GPIOB->MODER |= GPIO_MODER_MODER12_0;     // Output
-  GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_12);    // Push-pull
-  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);    // No pull
-  GPIOB->AFR[1] &= ~(0xF << 16);            // AF0 (GPIO)
+  // Теперь настраиваем как output
+  GPIOB->MODER |= GPIO_MODER_MODER12_0;      // Output mode
+  GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_12);     // Push-pull (не open-drain!)
 
-  TRACE("PB12_JTAG_DISABLE: PB12 configured as GPIO output\n");
+  TRACE("PB12_SYSTEM_CHECK: PB12 reset and configured as push-pull output\n");
+  TRACE("PB12_SYSTEM_CHECK: MODER=%d OTYPER=%d PUPDR=%d AFR=%d\n",
+        (GPIOB->MODER >> 24) & 0x3,
+        (GPIOB->OTYPER >> 12) & 0x1,
+        (GPIOB->PUPDR >> 24) & 0x3,
+        (GPIOB->AFR[1] >> 16) & 0xF);
 
-  // Тестируем PB12
-  for (int cycle = 0; cycle < 5; cycle++) {
+  // Тестируем с push-pull
+  for (int cycle = 0; cycle < 3; cycle++) {
     // HIGH
     GPIOB->BSRRL = GPIO_Pin_12;
-    TRACE("PB12_JTAG_DISABLE: Cycle %d - HIGH, ODR=%d\n", cycle + 1,
-          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0);
+    TRACE("PB12_SYSTEM_CHECK: Push-pull HIGH - ODR=%d IDR=%d\n",
+          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+          (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
 
-    volatile uint32_t delay = 300000; // 0.3 сек
+    delay = 500000; // 0.5 сек
     while (delay--) { __ASM volatile("nop"); }
 
     // LOW
     GPIOB->BSRRH = GPIO_Pin_12;
-    TRACE("PB12_JTAG_DISABLE: Cycle %d - LOW, ODR=%d\n", cycle + 1,
-          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0);
+    TRACE("PB12_SYSTEM_CHECK: Push-pull LOW - ODR=%d IDR=%d\n",
+          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+          (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
 
-    delay = 300000; // 0.3 сек
+    delay = 500000; // 0.5 сек
     while (delay--) { __ASM volatile("nop"); }
   }
 
-  TRACE("PB12_JTAG_DISABLE: Test completed - check if PB12 toggles now!\n");
+  TRACE("PB12_SYSTEM_CHECK: Push-pull test completed\n");
 
-  // Финальное состояние - LOW
-  GPIOB->BSRRH = GPIO_Pin_12;
-  TRACE("PB12_JTAG_DISABLE: Final state - LOW\n");
+  // Теперь попробуем open-drain
+  GPIOB->OTYPER |= GPIO_OTYPER_OT_12;        // Open-drain
+  GPIOB->PUPDR |= GPIO_PUPDR_PUPDR12_1;      // Pull-down для LOW
+
+  TRACE("PB12_SYSTEM_CHECK: Switched to open-drain with pull-down\n");
+
+  // Тестируем open-drain
+  GPIOB->BSRRH = GPIO_Pin_12;  // LOW через open-drain + pull-down
+  TRACE("PB12_SYSTEM_CHECK: Open-drain LOW - ODR=%d IDR=%d\n",
+        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+
+  delay = 1000000; // 1 сек
+  while (delay--) { __ASM volatile("nop"); }
+
+  GPIOB->BSRRL = GPIO_Pin_12;  // HIGH (open-drain отпускает)
+  TRACE("PB12_SYSTEM_CHECK: Open-drain HIGH (floating) - ODR=%d IDR=%d\n",
+        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+
+  delay = 1000000; // 1 сек
+  while (delay--) { __ASM volatile("nop"); }
+
+  TRACE("PB12_SYSTEM_CHECK: All tests completed - PB12 hardware issue confirmed\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
