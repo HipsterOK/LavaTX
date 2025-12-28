@@ -390,7 +390,9 @@ void boardInit()
   TRACE("RCC->CSR = %08x\n", RCC->CSR);
 #endif
 
-  if (!isDisableBoardOff() && !WAS_RESET_BY_WATCHDOG())
+  // skipCharging = true только если был UNEXPECTED_SHUTDOWN (неожиданное выключение)
+  // и USB подключен - тогда показываем зарядку
+  if (UNEXPECTED_SHUTDOWN() && usbPlugged())
   {
     skipCharging = true;
     // clear software reset mark
@@ -415,7 +417,7 @@ void boardInit()
   if (!UNEXPECTED_SHUTDOWN())
     sdInit();
 
-  if (skipCharging)
+  if (skipCharging || usbPlugged())
   {
     runPwrOffCharging();
     // После зарядки проверяем, был ли USB отключен
