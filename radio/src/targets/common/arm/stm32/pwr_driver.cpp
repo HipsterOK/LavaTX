@@ -24,14 +24,19 @@ void pwrInit()
 
   TRACE("PWR_INIT: PB13 set as OUTPUT LOW - alternative power control via MOSFET\n");
 
-  // Также оставим PB12 для совместимости
+  // PB12 для TPS63060DSCR EN pin
+  // Согласно datasheet: EN HIGH = enable, LOW = shutdown
   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;    // Push-pull для надежного HIGH
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;   // Pull-down для гарантии LOW если floating
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
-  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+
+  // Инициализируем в HIGH для включения питания при старте
+  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+
+  TRACE("PWR_INIT: PB12 set as PUSH-PULL OUTPUT HIGH - EN=1 for TPS63060DSCR enable\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
@@ -70,16 +75,17 @@ void pwrOff()
   // Отключаем через PB13 (MOSFET)
   GPIO_ResetBits(GPIOB, GPIO_Pin_13); // LOW для отключения через MOSFET
 
-  // Для TPS63060DSCR: open-drain output LOW для максимальной надежности
+  // Для TPS63060DSCR: переконфигурируем PB12 в open-drain LOW
+  // Open-drain позволит pull-down резистору STM32 установить надежный LOW на EN
   GPIO_InitTypeDef GPIO_InitStructure;
   GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_OD; // Open-drain для LOW
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; // Pull-down для гарантии LOW
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; // Pull-down ~50kOhm для LOW
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // Устанавливаем LOW
+  // Устанавливаем LOW для shutdown TPS63060DSCR
   GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
   TRACE("PWR_OFF: PB13 and PB12 set to LOW - dual power shutdown\n");
