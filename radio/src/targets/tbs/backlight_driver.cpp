@@ -19,12 +19,12 @@ void backlightInit()
 
 void backlightEnable(uint8_t level)
 {
-  if (level == 0) {
-    // Выключить подсветку
-    GPIO_ResetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);
+  // Для TBS подсветка либо включена, либо выключена
+  // level > 0 = включить, level = 0 = выключить
+  if (level > 0) {
+    GPIO_SetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);   // ВКЛ
   } else {
-    // Включить подсветку
-    GPIO_SetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);
+    GPIO_ResetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN); // ВЫКЛ
   }
 }
 

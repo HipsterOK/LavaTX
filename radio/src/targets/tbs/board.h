@@ -539,7 +539,7 @@ uint8_t isBacklightEnabled(void);
 #endif
 
   #define BACKLIGHT_DISABLE()             backlightDisable()
-  #define BACKLIGHT_ENABLE()              backlightEnable(g_eeGeneral.backlightBright)
+  #define BACKLIGHT_ENABLE()              backlightEnable(100) // Для TBS всегда включаем подсветку
   #define BACKLIGHT_LEVEL_MAX             100
 #endif
 
