@@ -620,6 +620,16 @@ void perMain()
   checkTrainerSettings();
 #endif
   periodicTick();
+  // Отладка напряжения для TBS - popup каждые 5 секунд
+#if defined(RADIO_FAMILY_TBS)
+  static uint32_t lastDebug = 0;
+  if (get_tmr10ms() - lastDebug > 5000) {  // каждые 5 секунд
+    extern void showBatteryDebugPopup();
+    showBatteryDebugPopup();
+    lastDebug = get_tmr10ms();
+  }
+#endif
+
   DEBUG_TIMER_STOP(debugTimerPerMain1);
 
   if (mainRequestFlags & (1u << REQUEST_FLIGHT_RESET)) {

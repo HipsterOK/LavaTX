@@ -21,6 +21,12 @@
 #include "opentx.h"
 #include "hall90393.h"
 
+// Stub functions for hall sensors (needed for compilation but not used by TBS)
+#if defined(RADIO_FAMILY_TBS)
+void hall90393_lazy_init(void) {}
+void hall90393_read_xyz(int, int16_t*, int16_t*, int16_t*) {}
+#endif
+
 #define DEADZONE 3500
 
 #if defined(SIMU)
@@ -267,11 +273,10 @@ static inline int16_t applyDeadzone(int16_t val) {
 
 void adcRead()
 {
-#if defined(RADIO_FAMILY_TBS)
     // Для TBS adcRead() не делает ничего, АЦП запускается в getADC()
-    return;
-#endif
+    // Для совместимости с другими платформами
 }
+
 
 #if !defined(SIMU)
 uint16_t getAnalogValue(uint8_t index)

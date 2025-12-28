@@ -1358,17 +1358,13 @@ void getADC()
 
   DEBUG_TIMER_START(debugTimerAdcRead);
   adcRead();
-  DEBUG_TIMER_STOP(debugTimerAdcRead);
 
-  // Отладка напряжения для TBS - popup каждые 3 секунды
+  // Запуск АЦП для TBS (для чтения батареи)
 #if defined(RADIO_FAMILY_TBS)
-  static uint32_t lastDebug = 0;
-  if (get_tmr10ms() - lastDebug > 3000) {  // каждые 3 секунды
-    extern void showBatteryDebugPopup();
-    showBatteryDebugPopup();
-    lastDebug = get_tmr10ms();
-  }
+  ADC_MAIN->CR2 |= ADC_CR2_SWSTART;
 #endif
+
+  DEBUG_TIMER_STOP(debugTimerAdcRead);
 
   for (uint8_t x=0; x<NUM_ANALOGS; x++) {
     uint16_t v = getAnalogValue(x) >> (1 - ANALOG_SCALE);
