@@ -33,14 +33,22 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ТЕСТ: сразу выключаем питание для проверки TPS63060DSCR EN pin
-  // GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
-  // TRACE("PWR_INIT: PB12 set to LOW for TPS63060DSCR shutdown TEST\n");
+  // ТЕСТ TPS63060DSCR: проверяем разные режимы
+  // Попробуем установить LOW при инициализации для теста
+  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+  TRACE("PWR_INIT TEST: PB12 set to LOW immediately - checking if TPS63060DSCR shuts down\n");
+  TRACE("PWR_INIT TEST: PB12 level = %d (should be 0)\n", GPIO_ReadOutputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
 
-  // НОРМАЛЬНАЯ РАБОТА: включаем питание
+  // Задержка для проверки shutdown
+  volatile uint32_t test_delay = 500000; // ~0.5 сек
+  while (test_delay--) { __ASM volatile("nop"); }
+
+  // Если система дошла сюда - значит TPS63060DSCR не выключился
+  TRACE("PWR_INIT TEST: System still running - TPS63060DSCR EN pin not controlled by PB12\n");
+
+  // Возвращаем HIGH для нормальной работы
   GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
-  TRACE("PWR_INIT: PB12 set as PUSH-PULL OUTPUT HIGH - EN=1 for TPS63060DSCR enable\n");
-  TRACE("PWR_INIT: PB12 level = %d (should be 1)\n", GPIO_ReadOutputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
+  TRACE("PWR_INIT: PB12 set back to HIGH for normal operation\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
