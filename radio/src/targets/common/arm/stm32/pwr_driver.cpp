@@ -9,18 +9,29 @@ void pwrInit()
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
   // --- PWR_ON (PB12) — управление EN пином TPS63060DSCR ---
-  // Максимально надежное управление: open-drain output LOW
+  // Попробуем другой подход: использовать PB13 для управления питанием через MOSFET
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+
+  GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_13;      // PB13 - альтернативный пин
+  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;   // Output
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;   // Push-pull для MOSFET
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;  // Pull-down
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  // Устанавливаем LOW для выключения питания через MOSFET
+  GPIO_ResetBits(GPIOB, GPIO_Pin_13);
+
+  TRACE("PWR_INIT: PB13 set as OUTPUT LOW - alternative power control via MOSFET\n");
+
+  // Также оставим PB12 для совместимости
   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
-  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;    // Output
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;    // Open-drain для LOW
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;   // Pull-down для гарантии LOW
+  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
-
-  // Устанавливаем LOW для выключения питания
   GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
-
-  TRACE("PWR_INIT: PB12 set as OPEN-DRAIN OUTPUT LOW - maximum drive for TPS63060DSCR EN shutdown\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
@@ -31,6 +42,9 @@ void pwrInit()
 
 void pwrOn()
 {
+  // Управляем PB13 (MOSFET control)
+  GPIO_SetBits(GPIOB, GPIO_Pin_13); // HIGH для включения через MOSFET
+
   // Переконфигурируем PB12 как push-pull output для HIGH уровня
   GPIO_InitTypeDef GPIO_InitStructure;
   GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
@@ -43,15 +57,19 @@ void pwrOn()
   // Устанавливаем HIGH для включения питания TPS63060DSCR
   GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
-  TRACE("PWR_ON: PB12 configured as PUSH-PULL OUTPUT with PULL-UP, set to HIGH\n");
+  TRACE("PWR_ON: PB13 and PB12 set to HIGH - dual power control\n");
 
-  // Проверяем уровень
-  TRACE("PWR_ON: PB12 output level = %d (should be 1)\n",
+  // Проверяем уровни
+  TRACE("PWR_ON: PB13 = %d, PB12 = %d (should be 1)\n",
+        GPIO_ReadOutputDataBit(GPIOB, GPIO_Pin_13),
         GPIO_ReadOutputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
 }
 
 void pwrOff()
 {
+  // Отключаем через PB13 (MOSFET)
+  GPIO_ResetBits(GPIOB, GPIO_Pin_13); // LOW для отключения через MOSFET
+
   // Для TPS63060DSCR: open-drain output LOW для максимальной надежности
   GPIO_InitTypeDef GPIO_InitStructure;
   GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
@@ -64,13 +82,14 @@ void pwrOff()
   // Устанавливаем LOW
   GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
-  TRACE("PWR_OFF: PB12 configured as OPEN-DRAIN OUTPUT, set to LOW\n");
+  TRACE("PWR_OFF: PB13 and PB12 set to LOW - dual power shutdown\n");
 
-  // Проверяем уровень
-  TRACE("PWR_OFF: PB12 output level = %d (should be 0)\n",
+  // Проверяем уровни
+  TRACE("PWR_OFF: PB13 = %d, PB12 = %d (should be 0)\n",
+        GPIO_ReadOutputDataBit(GPIOB, GPIO_Pin_13),
         GPIO_ReadOutputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
 
-  // Увеличенная задержка для shutdown TPS63060DSCR
+  // Увеличенная задержка для shutdown
   volatile uint32_t delay = 200000; // ~20ms для надежного shutdown
   while (delay--) { __ASM volatile("nop"); }
 }
