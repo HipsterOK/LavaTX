@@ -16,8 +16,8 @@ void pwrInit()
   GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // Включаем индикатор питания при инициализации
-  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+  // Начинаем с выключенного питания - ждем нажатия кнопки
+  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
@@ -50,7 +50,6 @@ void pwrResetHandler()
   __ASM volatile("nop");
   __ASM volatile("nop");
 
-  // Для TBS TANGO: включаем только индикатор питания
-  // Питание управляется аппаратно через кнопку Power_SW (PA3)
+  // Для TBS TANGO: включаем питание через PB12
   pwrOn();
 }

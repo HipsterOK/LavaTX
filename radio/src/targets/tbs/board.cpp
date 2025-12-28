@@ -269,8 +269,35 @@ static void showBatteryDebugPopup()
 
 void boardInit()
 {
-  // Инициализация RCC для GPIO портов
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
+  // === ПРОВЕРКА ПИТАНИЯ ===
+  // Инициализируем минимум для проверки кнопки питания
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+
+  // Инициализация питания
+  pwrInit();
+
+  // Проверяем, нажата ли кнопка питания
+  if (!pwrPressed()) {
+    // Кнопка не нажата - выключаемся
+    pwrOff();
+    // Здесь можно добавить небольшой цикл ожидания или просто выключиться
+    volatile uint32_t delay = 100000;
+    while (delay--) { __ASM volatile("nop"); }
+    // Если кнопка все еще не нажата, выключаемся
+    if (!pwrPressed()) {
+      boardOff();
+    }
+  }
+
+  // Кнопка нажата - включаем питание и продолжаем инициализацию
+  pwrOn();
+
+  // Небольшая задержка для стабилизации питания TPS63060
+  volatile uint32_t delay = 50000;
+  while (delay--) { __ASM volatile("nop"); }
+
+  // Теперь продолжаем нормальную инициализацию RCC
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
 
   // Инициализация SD_DETECT (PC5) как вход с pull-up
   GPIO_InitTypeDef GPIO_InitStructure;
