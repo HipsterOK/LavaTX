@@ -33,14 +33,25 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ТЕСТ PB13 (MOSFET): устанавливаем в LOW навсегда для проверки
-  // Если PB13 управляет питанием через MOSFET - система не запустится
-  GPIO_ResetBits(GPIOB, GPIO_Pin_13);
-  TRACE("PWR_INIT TEST: PB13 (MOSFET) set to LOW permanently - testing power control\n");
+  // ТЕСТ PA0: проверяем свободный GPIO pin для управления питанием
+  // PA0 обычно свободен и может использоваться для power control
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
-  // PB12 оставляем в HIGH для TPS63060DSCR (если он подключен)
+  GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_0;       // PA0 - тест нового пина
+  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;   // Output
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;   // Push-pull
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;  // Pull-down
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  // Устанавливаем LOW навсегда для теста
+  GPIO_ResetBits(GPIOA, GPIO_Pin_0);
+  TRACE("PWR_INIT TEST: PA0 set to LOW permanently - testing new power control pin\n");
+
+  // PB12 и PB13 оставляем в HIGH
   GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
-  TRACE("PWR_INIT: PB12 set to HIGH for TPS63060DSCR (if connected)\n");
+  GPIO_SetBits(GPIOB, GPIO_Pin_13);
+  TRACE("PWR_INIT: PB12 and PB13 set to HIGH\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
