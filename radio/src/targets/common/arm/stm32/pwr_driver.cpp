@@ -9,13 +9,18 @@ void pwrInit()
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
   // --- PWR_ON (PB12) — управление EN пином TPS63060DSCR ---
+  // Максимально надежное управление: open-drain output LOW
   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
-  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN;     // Input floating (high-Z)
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL; // No pull-up/down
+  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;    // Output
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;    // Open-drain для LOW
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;   // Pull-down для гарантии LOW
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // PB12 в high-Z состоянии - TPS63060DSCR EN pin использует внутренний pull-down
-  TRACE("PWR_INIT: PB12 set to INPUT FLOATING (high-Z) - TPS63060DSCR EN uses internal pull-down\n");
+  // Устанавливаем LOW для выключения питания
+  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+
+  TRACE("PWR_INIT: PB12 set as OPEN-DRAIN OUTPUT LOW - maximum drive for TPS63060DSCR EN shutdown\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
@@ -47,22 +52,26 @@ void pwrOn()
 
 void pwrOff()
 {
-  // Для TPS63060DSCR: устанавливаем PB12 как input floating (high-Z)
-  // EN pin TPS63060DSCR имеет внутренний pull-down ~100kOhm до GND
+  // Для TPS63060DSCR: open-drain output LOW для максимальной надежности
   GPIO_InitTypeDef GPIO_InitStructure;
   GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;        // Input floating
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;    // High-Z, используем pull-down TPS63060
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD; // Open-drain для LOW
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; // Pull-down для гарантии LOW
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  TRACE("PWR_OFF: PB12 set to INPUT FLOATING (high-Z) - TPS63060DSCR EN uses internal pull-down\n");
+  // Устанавливаем LOW
+  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
-  // Проверяем уровень на PB12 (должен быть LOW от pull-down TPS63060)
-  TRACE("PWR_OFF: PB12 pin level = %d (should be 0 from TPS63060 internal pull-down)\n",
-        GPIO_ReadInputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
+  TRACE("PWR_OFF: PB12 configured as OPEN-DRAIN OUTPUT, set to LOW\n");
 
-  // Задержка для shutdown TPS63060DSCR
-  volatile uint32_t delay = 100000; // ~10ms для надежного shutdown
+  // Проверяем уровень
+  TRACE("PWR_OFF: PB12 output level = %d (should be 0)\n",
+        GPIO_ReadOutputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
+
+  // Увеличенная задержка для shutdown TPS63060DSCR
+  volatile uint32_t delay = 200000; // ~20ms для надежного shutdown
   while (delay--) { __ASM volatile("nop"); }
 }
 
