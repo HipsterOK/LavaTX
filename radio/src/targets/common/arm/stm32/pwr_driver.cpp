@@ -33,42 +33,38 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ТЕСТ PB12: просто переключаем туда-сюда для проверки GPIO
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+  // ПРОВЕРКА: PB12 уже настроен в SystemInit() как LOW
+  // Возможно, он переопределяется где-то еще
+  TRACE("PB12_CHECK: PB12 was configured in SystemInit as LOW\n");
+  TRACE("PB12_CHECK: Current state - ODR=%d IDR=%d\n",
+        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
 
-  // Настраиваем PB12 как push-pull output
-  GPIOB->MODER &= ~(GPIO_MODER_MODER12);    // Сбрасываем
-  GPIOB->MODER |= GPIO_MODER_MODER12_0;     // Output
-  GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_12);    // Push-pull
-  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);    // No pull
+  // Проверяем MODER, OTYPER, PUPDR
+  TRACE("PB12_CHECK: MODER12=%d OTYPER12=%d PUPDR12=%d\n",
+        (GPIOB->MODER >> 24) & 0x3,
+        (GPIOB->OTYPER >> 12) & 0x1,
+        (GPIOB->PUPDR >> 24) & 0x3);
 
-  TRACE("PB12_TEST: Starting toggle test - watch logic analyzer\n");
+  // Пробуем переключить и сразу проверить
+  GPIOB->BSRRL = GPIO_Pin_12;  // HIGH
+  TRACE("PB12_CHECK: Set HIGH - ODR=%d IDR=%d\n",
+        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
 
-  // Переключаем PB12 туда-сюда
-  for (int i = 0; i < 10; i++) {
-    // HIGH
-    GPIOB->BSRRL = GPIO_Pin_12;
-    TRACE("PB12_TEST: Cycle %d - HIGH, ODR=%d IDR=%d\n", i+1,
-          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
-          (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+  volatile uint32_t delay = 100000; // 0.1 сек
+  while (delay--) { __ASM volatile("nop"); }
 
-    // Задержка
-    volatile uint32_t delay = 200000; // ~0.2 сек
-    while (delay--) { __ASM volatile("nop"); }
+  GPIOB->BSRRH = GPIO_Pin_12;  // LOW
+  TRACE("PB12_CHECK: Set LOW - ODR=%d IDR=%d\n",
+        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
 
-    // LOW
-    GPIOB->BSRRH = GPIO_Pin_12;
-    TRACE("PB12_TEST: Cycle %d - LOW, ODR=%d IDR=%d\n", i+1,
-          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
-          (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+  delay = 100000; // 0.1 сек
+  while (delay--) { __ASM volatile("nop"); }
 
-    // Задержка
-    delay = 200000; // ~0.2 сек
-    while (delay--) { __ASM volatile("nop"); }
-  }
-
-  TRACE("PB12_TEST: Toggle test completed\n");
-  TRACE("PB12_TEST: Check logic analyzer - did PB12 actually toggle?\n");
+  TRACE("PB12_CHECK: Check logic analyzer immediately after this traces!\n");
+  TRACE("PB12_CHECK: If PB12 stays HIGH - it's overridden somewhere else\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
