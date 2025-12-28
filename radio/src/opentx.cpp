@@ -1360,6 +1360,15 @@ void getADC()
   adcRead();
   DEBUG_TIMER_STOP(debugTimerAdcRead);
 
+  // Отладка для TBS
+#if defined(RADIO_FAMILY_TBS)
+  static uint32_t lastTrace = 0;
+  if (get_tmr10ms() - lastTrace > 1000) {  // каждую секунду
+    TRACE("getADC: adcValues[TX_VOLTAGE=%d]=%d, adcValues[TX_RTC_VOLTAGE=%d]=%d", TX_VOLTAGE, adcValues[TX_VOLTAGE], TX_RTC_VOLTAGE, adcValues[TX_RTC_VOLTAGE]);
+    lastTrace = get_tmr10ms();
+  }
+#endif
+
   for (uint8_t x=0; x<NUM_ANALOGS; x++) {
     uint16_t v = getAnalogValue(x) >> (1 - ANALOG_SCALE);
 

@@ -91,6 +91,8 @@ uint16_t rtcBatteryVoltage;
 
 void adcInit()
 {
+  TRACE("adcInit: start");
+
   GPIO_InitTypeDef GPIO_InitStructure;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
@@ -100,11 +102,13 @@ void adcInit()
 #if defined(ADC_GPIOA_PINS)
   GPIO_InitStructure.GPIO_Pin = ADC_GPIOA_PINS;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
+  TRACE("adcInit: ADC_GPIOA_PINS = %x", ADC_GPIOA_PINS);
 #endif
 
 #if defined(ADC_GPIOB_PINS)
   GPIO_InitStructure.GPIO_Pin = ADC_GPIOB_PINS;
   GPIO_Init(GPIOB, &GPIO_InitStructure);
+  TRACE("adcInit: ADC_GPIOB_PINS = %x", ADC_GPIOB_PINS);
 #endif
 
 #if defined(ADC_GPIOC_PINS)
@@ -148,6 +152,7 @@ void adcInit()
 #elif defined(RADIO_TANGO)
   ADC_MAIN->SQR2 = 0;
   ADC_MAIN->SQR3 = (ADC_CHANNEL_BATT<<0) + (ADC_Channel_Vbat<<5);
+  TRACE("adcInit: RADIO_TANGO SQR3 = %x (ADC_CHANNEL_BATT=%d, ADC_Channel_Vbat=%d)", ADC_MAIN->SQR3, ADC_CHANNEL_BATT, ADC_Channel_Vbat);
 #elif defined(RADIO_MAMBO)
   ADC_MAIN->SQR2 = (ADC_CHANNEL_SWITCH_D << 0) + (ADC_CHANNEL_BATT << 5) + (ADC_Channel_Vbat << 10);
   ADC_MAIN->SQR3 = (ADC_CHANNEL_POT1 << 0) + (ADC_CHANNEL_POT2 << 5) + (ADC_CHANNEL_TRIM << 10) + (ADC_CHANNEL_SWITCH_A << 15) + (ADC_CHANNEL_SWITCH_B << 20) + (ADC_CHANNEL_SWITCH_C << 25);
