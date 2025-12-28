@@ -532,21 +532,15 @@ void boardOff()
 
 uint16_t getBatteryVoltage()
 {
- int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
+  // Используем сырое значение ADC для более точного измерения
+  int32_t adc_value = adcValues[TX_VOLTAGE];
 
   // Калибровка напряжения батареи для TBS Tango
-  // instant_vbat = ADC значение (0-4095)
-  // Формула: напряжение_10mv = (adc * 660) / 4095 + калибровка
-  // 660 = 3.3V * 2 * 100 (делитель 1:2, результат в 10mV)
-  instant_vbat = (instant_vbat * 660) / 4095;
+  // adc_value = ADC значение (0-4095)
+  // Формула: напряжение_10mv = (adc * 420) / 4095 + калибровка
+  // 420 = 4.2V * 100 (максимальное напряжение Li-Ion в 10mV единицах)
+  int32_t instant_vbat = (adc_value * 420) / 4095;
   instant_vbat += g_eeGeneral.txVoltageCalibration;
-
-  // TRACE отладка каждые 10 секунд
-  static uint32_t lastTrace = 0;
-  if (get_tmr10ms() - lastTrace > 10000) {  // каждые 10 секунд
-    TRACE("Battery: RAW=%d ANA=%d VBAT=%d (cal=%d)", adcValues[TX_VOLTAGE], anaIn(TX_VOLTAGE), instant_vbat, g_eeGeneral.txVoltageCalibration);
-    lastTrace = get_tmr10ms();
-  }
 
   return (uint16_t)instant_vbat;
 }
