@@ -348,7 +348,7 @@ void boardInit()
   backlightInit();
 #endif
   backlightInit();
-  // Подсветка будет управляться через события в perMain()
+  BACKLIGHT_ENABLE(); // Включаем подсветку при старте
   lcdInit(); // delaysInit() must be called before
   delay_ms(5);  // короткая пауза для стабилизации
   lcdClear();
