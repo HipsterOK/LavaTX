@@ -2162,6 +2162,7 @@ void opentxInit()
 
   // Инициализируем напряжение батареи
   g_vbat100mV = (getBatteryVoltage() + 5) / 10;
+  TRACE("opentxInit: init g_vbat100mV = %d", g_vbat100mV);
 
 #if defined(PCBSKY9X)
   // Set ADC gains here

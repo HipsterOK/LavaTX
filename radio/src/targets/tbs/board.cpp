@@ -405,6 +405,7 @@ void boardInit()
     // После зарядки обновляем напряжение батареи
     extern uint8_t g_vbat100mV;
     g_vbat100mV = (getBatteryVoltage() + 5) / 10;
+    TRACE("boardInit after charging: g_vbat100mV = %d", g_vbat100mV);
     // После зарядки проверяем, был ли USB отключен
     if (!usbPlugged()) {
       TRACE("USB disconnected during charging, powering off...\n");
@@ -537,12 +538,17 @@ uint16_t getBatteryVoltage()
 {
  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
 
+  // Отладка: показываем сырые значения
+  TRACE("getBatteryVoltage: anaIn=%d, adcValues[TX_VOLTAGE]=%d", instant_vbat, adcValues[TX_VOLTAGE]);
+
   // Калибровка напряжения батареи для TBS Tango
   // instant_vbat = ADC значение (0-4095)
   // Формула: напряжение_10mv = (adc * 660) / 4095 + калибровка
   // 660 = 3.3V * 2 * 100 (делитель 1:2, результат в 10mV)
   instant_vbat = (instant_vbat * 660) / 4095;
   instant_vbat += g_eeGeneral.txVoltageCalibration;
+
+  TRACE("getBatteryVoltage: final=%d (calib=%d)", instant_vbat, g_eeGeneral.txVoltageCalibration);
 
   return (uint16_t)instant_vbat;
 }
