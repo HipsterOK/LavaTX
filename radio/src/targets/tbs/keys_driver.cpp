@@ -140,6 +140,11 @@ void readKeysAndTrims()
 #endif
     // on keypress turn the light on
     resetBacklightTimeout();
+    // Для TBS сбрасываем дополнительный счетчик
+    #if defined(RADIO_FAMILY_TBS)
+    extern uint32_t lastKeyPressTime;
+    lastKeyPressTime = g_tmr10ms;
+    #endif
   }
 }
 

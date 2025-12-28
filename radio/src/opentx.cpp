@@ -137,10 +137,9 @@ void per10ms()
 #if defined(RADIO_FAMILY_TBS)
   if (lightOffCounter) lightOffCounter--;
 
-  // Принудительное выключение подсветки через 10 секунд для тестирования
-  static uint32_t testCounter = 0;
-  testCounter++;
-  if (testCounter > 1000) { // 10 секунд (1000 * 10мс)
+  // Дополнительная логика выключения для TBS
+  extern uint32_t lastKeyPressTime;
+  if (g_tmr10ms - lastKeyPressTime > 500) { // 5 секунд
     backlightDisable();
   }
 #endif
@@ -1455,6 +1454,7 @@ void getADC()
 uint8_t g_vbat100mV = 0;
 uint16_t lightOffCounter;
 uint8_t flashCounter = 0;
+uint32_t lastKeyPressTime = 0;
 
 uint16_t sessionTimer;
 uint16_t s_timeCumThr;    // THR in 1/16 sec
