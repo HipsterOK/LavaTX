@@ -33,50 +33,42 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ТЕСТ GPIO: проверяем можем ли мы вообще управлять GPIO
-  // PB12 всегда HIGH по данным логического анализатора
+  // ТЕСТ PB12: просто переключаем туда-сюда для проверки GPIO
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
-  // Тестируем PB13 (который должен работать, там MLX)
-  GPIOB->MODER &= ~(GPIO_MODER_MODER13);    // PB13 output
-  GPIOB->MODER |= GPIO_MODER_MODER13_0;
-  GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_13);    // Push-pull
-  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR13);    // No pull
-  GPIOB->BSRRH = GPIO_Pin_13;               // LOW
+  // Настраиваем PB12 как push-pull output
+  GPIOB->MODER &= ~(GPIO_MODER_MODER12);    // Сбрасываем
+  GPIOB->MODER |= GPIO_MODER_MODER12_0;     // Output
+  GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_12);    // Push-pull
+  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);    // No pull
 
-  TRACE("GPIO_TEST: PB13 set to LOW - checking if GPIO works\n");
-  TRACE("GPIO_TEST: PB13 ODR = %d, IDR = %d\n",
-        (GPIOB->ODR & GPIO_Pin_13) ? 1 : 0,
-        (GPIOB->IDR & GPIO_Pin_13) ? 1 : 0);
+  TRACE("PB12_TEST: Starting toggle test - watch logic analyzer\n");
 
-  // Тестируем PB12 - попробуем разные конфигурации
-  GPIOB->MODER &= ~(GPIO_MODER_MODER12);    // Output
-  GPIOB->MODER |= GPIO_MODER_MODER12_0;
-  GPIOB->OTYPER |= GPIO_OTYPER_OT_12;       // Open-drain
-  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);    // No pull сначала
-  GPIOB->BSRRH = GPIO_Pin_12;               // LOW
+  // Переключаем PB12 туда-сюда
+  for (int i = 0; i < 10; i++) {
+    // HIGH
+    GPIOB->BSRRL = GPIO_Pin_12;
+    TRACE("PB12_TEST: Cycle %d - HIGH, ODR=%d IDR=%d\n", i+1,
+          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+          (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
 
-  TRACE("GPIO_TEST: PB12 set to LOW (open-drain, no pull)\n");
-  TRACE("GPIO_TEST: PB12 ODR = %d, IDR = %d\n",
-        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
-        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+    // Задержка
+    volatile uint32_t delay = 200000; // ~0.2 сек
+    while (delay--) { __ASM volatile("nop"); }
 
-  // Задержка
-  volatile uint32_t delay = 500000; // 0.5 сек
-  while (delay--) { __ASM volatile("nop"); }
+    // LOW
+    GPIOB->BSRRH = GPIO_Pin_12;
+    TRACE("PB12_TEST: Cycle %d - LOW, ODR=%d IDR=%d\n", i+1,
+          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+          (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
 
-  // Попробуем с pull-down
-  GPIOB->PUPDR |= GPIO_PUPDR_PUPDR12_1;     // Pull-down
-  TRACE("GPIO_TEST: PB12 with pull-down added\n");
-  TRACE("GPIO_TEST: PB12 ODR = %d, IDR = %d\n",
-        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
-        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+    // Задержка
+    delay = 200000; // ~0.2 сек
+    while (delay--) { __ASM volatile("nop"); }
+  }
 
-  // Еще задержка
-  delay = 500000; // 0.5 сек
-  while (delay--) { __ASM volatile("nop"); }
-
-  TRACE("GPIO_TEST: PB12 always HIGH according to logic analyzer - hardware issue\n");
+  TRACE("PB12_TEST: Toggle test completed\n");
+  TRACE("PB12_TEST: Check logic analyzer - did PB12 actually toggle?\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
