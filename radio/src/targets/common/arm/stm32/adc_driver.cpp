@@ -260,7 +260,7 @@ static inline int16_t applyDeadzone(int16_t val) {
 }
 
 // === Константы фильтра и коррекции ===
-#define STICK_JITTER   4        // Порог дребезга (можно 2-4)
+#define STICK_JITTER   8        // Порог дребезга (увеличен для уменьшения джиттера)
 #define STICK_DEADBAND ((int)(0.07f * 2048)) // ≈143
 #define K_CROSS_L      0.08f    // Подбирай под свой магнит
 #define K_CROSS_R      0.08f
@@ -302,8 +302,8 @@ void adcRead()
   hall90393_read_xyz(2, &x2, &y2, &z2);    // Правый стик
 
   // --- Кросс-коррекция осей ---
-  float fx1 = -x1 - K_CROSS_L * y1; // Левый X инвертирован (лево-право)
-  float fy1 = y1 - K_CROSS_L * x1;
+  float fx1 = -y1 - K_CROSS_L * x1; // Левый X из Y (оси перепутаны)
+  float fy1 = x1 - K_CROSS_L * y1;  // Левый Y из X
   float fx2 = x2 - K_CROSS_R * y2;
   float fy2 = -y2 - K_CROSS_R * x2; // Правый Y инвертирован (вверх-вниз)
 
