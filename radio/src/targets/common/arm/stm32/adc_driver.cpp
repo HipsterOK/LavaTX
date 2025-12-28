@@ -299,13 +299,13 @@ void adcRead()
 
   int16_t x1, y1, z1, x2, y2, z2;
   hall90393_read_xyz(1, &x1, &y1, &z1);    // Левый стик
-  hall90393_read_xyz(2, &y2, &x2, &z2);    // Правый стик
+  hall90393_read_xyz(2, &x2, &y2, &z2);    // Правый стик
 
   // --- Кросс-коррекция осей ---
   float fx1 = x1 - K_CROSS_L * y1;
   float fy1 = y1 - K_CROSS_L * x1;
-  float fx2 = -x2 - K_CROSS_R * y2;
-  float fy2 = -y2 - K_CROSS_R * x2;
+  float fx2 = x2 - K_CROSS_R * y2;
+  float fy2 = y2 - K_CROSS_R * x2;
 
   int16_t raw[4] = {
       (int16_t)fx1,

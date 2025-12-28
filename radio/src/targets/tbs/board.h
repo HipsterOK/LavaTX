@@ -439,8 +439,8 @@ uint16_t getBatteryVoltage();   // returns current battery voltage in 10mV steps
 #elif defined(RADIO_MAMBO)
 #define BATT_SCALE                    (4.55f)
 #elif defined(RADIO_TANGO)
-#define BATT_SCALE                    (3.10f)
-#define BATT_SCALE2                   (3.10f)
+#define BATT_SCALE                    (4.76f)
+#define BATT_SCALE2                   (4.76f)
 #endif
 // BATT_SCALE = 12-bit max value * pd / ANALOG_MULTIPLIER / vref / multiplication
 //            = 4095 * 2/3 / 2 / vref / 100
