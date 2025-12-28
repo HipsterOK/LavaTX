@@ -549,6 +549,8 @@ void usbJoystickUpdate();
 #define USB_MANUFACTURER                'L', 'A', 'V', 'A', ' ', ' ', ' ', ' '  /* 8 bytes */
 #if defined(RADIO_LAVA_ONE)
 #define USB_PRODUCT                     'O', 'n', 'e', ' ', ' ', ' ', ' ', ' '  /* 8 Bytes */
+#elif defined(RADIO_TANGO)
+#define USB_PRODUCT                     'T', 'a', 'n', 'g', 'o', ' ', ' ', ' '  /* 8 Bytes */
 #else
 #define USB_PRODUCT                     'M', 'a', 'm', 'b', 'o', ' ', ' ', ' '  /* 8 Bytes */
 #endif
