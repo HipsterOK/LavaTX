@@ -33,38 +33,42 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ПРОВЕРКА: PB12 уже настроен в SystemInit() как LOW
-  // Возможно, он переопределяется где-то еще
-  TRACE("PB12_CHECK: PB12 was configured in SystemInit as LOW\n");
-  TRACE("PB12_CHECK: Current state - ODR=%d IDR=%d\n",
-        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
-        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+  // PB12 НЕ РАБОТАЕТ - аппаратная проблема!
+  // Пробуем другой GPIO pin - PA0
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
-  // Проверяем MODER, OTYPER, PUPDR
-  TRACE("PB12_CHECK: MODER12=%d OTYPER12=%d PUPDR12=%d\n",
-        (GPIOB->MODER >> 24) & 0x3,
-        (GPIOB->OTYPER >> 12) & 0x1,
-        (GPIOB->PUPDR >> 24) & 0x3);
+  // Настраиваем PA0 как output
+  GPIOA->MODER &= ~(GPIO_MODER_MODER0);    // Сбрасываем
+  GPIOA->MODER |= GPIO_MODER_MODER0_0;     // Output
+  GPIOA->OTYPER &= ~(GPIO_OTYPER_OT_0);    // Push-pull
+  GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR0);    // No pull
 
-  // Пробуем переключить и сразу проверить
-  GPIOB->BSRRL = GPIO_Pin_12;  // HIGH
-  TRACE("PB12_CHECK: Set HIGH - ODR=%d IDR=%d\n",
-        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
-        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+  TRACE("PA0_TEST: Testing alternative GPIO pin PA0\n");
 
-  volatile uint32_t delay = 100000; // 0.1 сек
-  while (delay--) { __ASM volatile("nop"); }
+  // Переключаем PA0 туда-сюда
+  for (int i = 0; i < 5; i++) {
+    // HIGH
+    GPIOA->BSRRL = GPIO_Pin_0;
+    TRACE("PA0_TEST: Cycle %d - HIGH, ODR=%d IDR=%d\n", i+1,
+          (GPIOA->ODR & GPIO_Pin_0) ? 1 : 0,
+          (GPIOA->IDR & GPIO_Pin_0) ? 1 : 0);
 
-  GPIOB->BSRRH = GPIO_Pin_12;  // LOW
-  TRACE("PB12_CHECK: Set LOW - ODR=%d IDR=%d\n",
-        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
-        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+    volatile uint32_t delay = 200000; // 0.2 сек
+    while (delay--) { __ASM volatile("nop"); }
 
-  delay = 100000; // 0.1 сек
-  while (delay--) { __ASM volatile("nop"); }
+    // LOW
+    GPIOA->BSRRH = GPIO_Pin_0;
+    TRACE("PA0_TEST: Cycle %d - LOW, ODR=%d IDR=%d\n", i+1,
+          (GPIOA->ODR & GPIO_Pin_0) ? 1 : 0,
+          (GPIOA->IDR & GPIO_Pin_0) ? 1 : 0);
 
-  TRACE("PB12_CHECK: Check logic analyzer immediately after this traces!\n");
-  TRACE("PB12_CHECK: If PB12 stays HIGH - it's overridden somewhere else\n");
+    delay = 200000; // 0.2 сек
+    while (delay--) { __ASM volatile("nop"); }
+  }
+
+  TRACE("PA0_TEST: Check PA0 on logic analyzer!\n");
+  TRACE("PA0_TEST: If PA0 toggles - GPIO works, can use it for power control\n");
+  TRACE("PA0_TEST: If PA0 doesn't toggle - all GPIO broken\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
