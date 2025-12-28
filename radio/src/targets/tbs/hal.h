@@ -396,7 +396,12 @@
 #define BACKLIGHT_RCC_AHB1Periph RCC_AHB1Periph_GPIOE
 #define BACKLIGHT_RCC_APB1Periph 0
 #define BACKLIGHT_GPIO GPIOE
-#define BACKLIGHT_GPIO_PIN GPIO_Pin_12 // PE.12 (подсветка кнопок)
+#define BACKLIGHT_GPIO_PIN GPIO_Pin_12 // PE.12 — подсветка кнопок
+
+// Button Light (подсветка кнопок)
+#define BUTTONLIGHT_RCC_AHB1Periph RCC_AHB1Periph_GPIOE
+#define BUTTONLIGHT_GPIO GPIOE
+#define BUTTONLIGHT_GPIO_PIN GPIO_Pin_12 // PE.12
 #else
 #define BACKLIGHT_RCC_AHB1Periph RCC_AHB1Periph_GPIOD
 #define BACKLIGHT_RCC_APB1Periph RCC_APB1Periph_TIM4
