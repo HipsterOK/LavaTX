@@ -564,7 +564,7 @@ void boardOff()
 
   // Простой polling loop с минимальным потреблением
   while (1) {
-    // Проверяем кнопку каждые 100мс
+    // Проверяем кнопку каждые 10мс
     if (pwrPressed()) {
       TRACE("WAKEUP: Power button pressed in sleep mode\n");
 
@@ -584,16 +584,14 @@ void boardOff()
       // Включаем питание
       pwrOn();
 
-      // Возвращаемся в boardInit для нормальной работы
-      return;
+      // Полная перезагрузка для корректной инициализации
+      TRACE("RESTARTING SYSTEM AFTER WAKEUP\n");
+      NVIC_SystemReset();
     }
 
     // Короткая задержка для экономии энергии
     volatile uint32_t delay = 10000; // ~1ms
     while (delay--) { __ASM volatile("nop"); }
-
-    // Сбрасываем watchdog если он все еще активен
-    IWDG->KR = 0xAAAA;
   }
 }
 
