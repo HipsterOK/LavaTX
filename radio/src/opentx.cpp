@@ -1357,7 +1357,9 @@ void getADC()
 #endif
 
   DEBUG_TIMER_START(debugTimerAdcRead);
+#if defined(RADIO_CALIBRATION_HALL)
   adcRead();
+#endif
   DEBUG_TIMER_STOP(debugTimerAdcRead);
 
   for (uint8_t x=0; x<NUM_ANALOGS; x++) {

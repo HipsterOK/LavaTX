@@ -265,10 +265,51 @@ static inline int16_t applyDeadzone(int16_t val) {
 #define K_CROSS_L      0.08f    // Подбирай под свой магнит
 #define K_CROSS_R      0.08f
 
+#if defined(RADIO_CALIBRATION_HALL)
 void adcRead()
 {
-    // TBS Tango не использует стики - пустая функция
+    hall90393_lazy_init();
+
+    int16_t x1, y1, z1, x2, y2, z2;
+    hall90393_read_xyz(1, &x1, &y1, &z1);    // Левый стик
+    hall90393_read_xyz(2, &y2, &x2, &z2);    // Правый стик
+
+    // --- Кросс-коррекция осей ---
+    float fx1 = x1 - K_CROSS_L * y1;
+    float fy1 = y1 - K_CROSS_L * x1;
+    float fx2 = -x2 - K_CROSS_R * y2;
+    float fy2 = -y2 - K_CROSS_R * x2;
+
+    int16_t raw[4] = {
+        (int16_t)fx1,
+        (int16_t)fy1,
+        (int16_t)fx2,
+        (int16_t)fy2
+    };
+
+    static int inited = 0;
+    static int16_t prevVal[4] = {0, 0, 0, 0};
+
+    if (!inited) {
+        for (int i = 0; i < 4; ++i)
+            prevVal[i] = raw[i];
+        inited = 1;
+    }
+
+    for (int i = 0; i < 4; ++i) {
+        // DEADZONE 5% (мёртвая зона ±102)
+        if (abs(raw[i]) < STICK_DEADBAND) {
+            prevVal[i] = 0;
+        } else if (abs(raw[i] - prevVal[i]) > STICK_JITTER) {
+            prevVal[i] = raw[i];
+        }
+        s_anaFilt[i] = prevVal[i];
+#if defined(RADIO_FAMILY_TBS)
+        crossfireSharedData.sticks[i] = prevVal[i];
+#endif
+    }
 }
+#endif
 
 #if defined(PCBX10)
 uint16_t getRTCBatteryVoltage()

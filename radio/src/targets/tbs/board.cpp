@@ -533,17 +533,21 @@ void boardOff()
 uint16_t getBatteryVoltage()
 {
  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
-  float batt_scale = 0;
-#if defined(RADIO_TANGO)
-  if (IS_PCBREV_01())
-    batt_scale = BATT_SCALE;
-  else 
-    batt_scale = BATT_SCALE2;
-#elif defined(RADIO_MAMBO)
-  batt_scale = BATT_SCALE;
-#endif
 
-  instant_vbat = instant_vbat / batt_scale + g_eeGeneral.txVoltageCalibration;
+  // Калибровка напряжения батареи для TBS Tango
+  // instant_vbat = ADC значение (0-4095)
+  // Формула: напряжение_10mv = (adc * 660) / 4095 + калибровка
+  // 660 = 3.3V * 2 * 100 (делитель 1:2, результат в 10mV)
+  instant_vbat = (instant_vbat * 660) / 4095;
+  instant_vbat += g_eeGeneral.txVoltageCalibration;
+
+  // TRACE отладка каждые 10 секунд
+  static uint32_t lastTrace = 0;
+  if (get_tmr10ms() - lastTrace > 10000) {  // каждые 10 секунд
+    TRACE("Battery: RAW=%d ANA=%d VBAT=%d (cal=%d)", adcValues[TX_VOLTAGE], anaIn(TX_VOLTAGE), instant_vbat, g_eeGeneral.txVoltageCalibration);
+    lastTrace = get_tmr10ms();
+  }
+
   return (uint16_t)instant_vbat;
 }
 
