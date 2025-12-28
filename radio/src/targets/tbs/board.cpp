@@ -551,9 +551,9 @@ void boardOff()
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 
-  // Используем STOP mode с wakeup от кнопки PA3
-  // STOP mode потребляет ~20uA и позволяет wakeup от EXTI
-  TRACE("ENTERING STOP MODE WITH EXTI WAKEUP\n");
+  // Software shutdown с минимальным потреблением
+  // Полностью отключаем систему software способом
+  TRACE("SOFTWARE SHUTDOWN - MINIMAL POWER MODE\n");
 
   // Отключаем USB
   usbStop();
@@ -562,44 +562,63 @@ void boardOff()
   lcdClear();
   lcdOff();
 
+  // Отключаем все LED
+  statusLedAllOff();
+
   // Полностью отключаем все watchdog
   IWDG->KR = 0x0000;
   WWDG->CR = 0x7F;
   WWDG->CFR = 0x7F;
   RCC->CSR |= RCC_CSR_RMVF;
 
-  // Настраиваем wakeup от PA3 через EXTI
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-  SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource3);
+  // Отключаем все системные таймеры
+  TIM1->CR1 &= ~TIM_CR1_CEN;
+  TIM2->CR1 &= ~TIM_CR1_CEN;
+  TIM3->CR1 &= ~TIM_CR1_CEN;
+  TIM4->CR1 &= ~TIM_CR1_CEN;
+  TIM5->CR1 &= ~TIM_CR1_CEN;
+  TIM6->CR1 &= ~TIM_CR1_CEN;
+  TIM7->CR1 &= ~TIM_CR1_CEN;
+  TIM8->CR1 &= ~TIM_CR1_CEN;
+  TIM9->CR1 &= ~TIM_CR1_CEN;
+  TIM10->CR1 &= ~TIM_CR1_CEN;
+  TIM11->CR1 &= ~TIM_CR1_CEN;
+  TIM12->CR1 &= ~TIM_CR1_CEN;
+  TIM13->CR1 &= ~TIM_CR1_CEN;
+  TIM14->CR1 &= ~TIM_CR1_CEN;
 
-  EXTI_InitStructure.EXTI_Line = EXTI_Line3;
-  EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling; // Active LOW
-  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-  EXTI_Init(&EXTI_InitStructure);
+  // Отключаем SysTick
+  SysTick->CTRL = 0;
 
-  NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
+  // Настраиваем wakeup от PA3 через polling (самый надежный способ)
+  // Проверяем кнопку каждые 100ms без прерываний
+  TRACE("ENTERING POLLING SLEEP LOOP\n");
 
-  // Входим в STOP mode с низким энергопотреблением
-  PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
+  uint32_t sleepCount = 0;
+  while (1) {
+    sleepCount++;
+    if (sleepCount % 10 == 0) {  // Каждые 100ms
+      if (pwrPressed()) {
+        TRACE("WAKEUP: Button pressed in sleep mode\n");
 
-  // После wakeup из STOP mode система продолжает отсюда
-  TRACE("WAKEUP FROM STOP MODE - CONTINUING EXECUTION\n");
+        // Восстанавливаем RCC
+        RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-  // Восстанавливаем системные настройки
-  SystemInit();
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+        // Устанавливаем PB12 в HIGH
+        GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
-  // Устанавливаем PB12 в HIGH для питания
-  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+        // Включаем питание и перезапускаемся
+        pwrOn();
+        NVIC_SystemReset();
+      }
+    }
 
-  // Включаем питание и перезапускаемся
-  pwrOn();
-  NVIC_SystemReset();
+    // Минимальная задержка для экономии энергии
+    volatile uint32_t delay = 1000; // ~100us
+    while (delay--) {
+      __ASM volatile("nop");
+    }
+  }
 }
 
 // Interrupt handler для wakeup из STOP mode
