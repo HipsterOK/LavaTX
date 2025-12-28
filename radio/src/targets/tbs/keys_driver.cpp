@@ -152,21 +152,25 @@ void readKeysAndTrims()
     break;
 
 #if defined(RADIO_TANGO)
-#define ADD_3POS_CASE(x, i) \
-  case SW_S ## x ## 0: \
-    xxx = (SWITCHES_GPIO_REG_ ## x ## _H & SWITCHES_GPIO_PIN_ ## x ## _H); \
-    if (IS_CONFIG_3POS(i)) { \
-      xxx = xxx && (~SWITCHES_GPIO_REG_ ## x ## _L & SWITCHES_GPIO_PIN_ ## x ## _L); \
-    } \
+#define IS_PIN_LOW(reg, pin)  (((reg) & (pin)) == 0)
+#define IS_PIN_HIGH(reg, pin) (((reg) & (pin)) != 0)
+
+// ТВОЯ РЕАЛЬНАЯ СХЕМА:
+// UP: H=0, L=1
+// MID: H=1, L=1
+// DOWN: H=1, L=0
+#define ADD_3POS_CASE(x) \
+  case SW_S ## x ## 0: /* UP */ \
+    xxx = ( IS_PIN_LOW (SWITCHES_GPIO_REG_ ## x ## _H, SWITCHES_GPIO_PIN_ ## x ## _H) && \
+            IS_PIN_HIGH(SWITCHES_GPIO_REG_ ## x ## _L, SWITCHES_GPIO_PIN_ ## x ## _L) ) ? 1 : 0; \
     break; \
-  case SW_S ## x ## 1: \
-    xxx = (SWITCHES_GPIO_REG_ ## x ## _H & SWITCHES_GPIO_PIN_ ## x ## _H) && (SWITCHES_GPIO_REG_ ## x ## _L & SWITCHES_GPIO_PIN_ ## x ## _L); \
+  case SW_S ## x ## 1: /* MID */ \
+    xxx = ( IS_PIN_HIGH(SWITCHES_GPIO_REG_ ## x ## _H, SWITCHES_GPIO_PIN_ ## x ## _H) && \
+            IS_PIN_HIGH(SWITCHES_GPIO_REG_ ## x ## _L, SWITCHES_GPIO_PIN_ ## x ## _L) ) ? 1 : 0; \
     break; \
-  case SW_S ## x ## 2: \
-    xxx = (~SWITCHES_GPIO_REG_ ## x ## _H & SWITCHES_GPIO_PIN_ ## x ## _H); \
-    if (IS_CONFIG_3POS(i)) { \
-      xxx = xxx && (SWITCHES_GPIO_REG_ ## x ## _L & SWITCHES_GPIO_PIN_ ## x ## _L); \
-    } \
+  case SW_S ## x ## 2: /* DOWN */ \
+    xxx = ( IS_PIN_HIGH(SWITCHES_GPIO_REG_ ## x ## _H, SWITCHES_GPIO_PIN_ ## x ## _H) && \
+            IS_PIN_LOW (SWITCHES_GPIO_REG_ ## x ## _L, SWITCHES_GPIO_PIN_ ## x ## _L) ) ? 1 : 0; \
     break
 #elif defined(RADIO_MAMBO)
 #define ADD_3POS_CASE(x) \
@@ -194,9 +198,13 @@ uint32_t switchState(uint8_t index)
 
   switch (index) {
 #if defined(RADIO_TANGO)
-    ADD_2POS_CASE(A);
-    ADD_3POS_CASE(B, 1);
-    ADD_3POS_CASE(C, 2);
+    // SA — 3-позиционный, PE4/PE5
+    ADD_3POS_CASE(A);
+    // SB — 2-позиционный, PE1
+    ADD_2POS_CASE(B);
+    // SC — 3-позиционный, PE3/PE2
+    ADD_3POS_CASE(C);
+    // SD — 2-позиционный, PE0
     ADD_2POS_CASE(D);
 #elif defined(RADIO_MAMBO)
     ADD_3POS_CASE(A);

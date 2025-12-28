@@ -75,10 +75,22 @@ extern uint16_t sessionTimer;
 static const uint8_t switchPosition[][2] = {{0,0}, {0,1}, {1,0}, {1,1}, {1,2}, {0,2}};
 #elif defined(RADIO_LAVA_ONE)
 static const uint8_t switchPosition[][2] = {
-  {0,0}, // SA — слева, верх
-  {0,1}, // SB — слева, ниже
-  {1,0}, // SC — справа, верх
-  {1,1}, // SD — справа, ниже
+  // ---- SA 3-pos ----
+  {0,0}, // SW_SA0 = UP
+  {0,1}, // SW_SA1 = MID
+  {0,2}, // SW_SA2 = DOWN
+  // ---- SB 2-pos ----
+  {1,0}, // SW_SB0 = UP / OFF
+  {1,2}, // SW_SB1 = DOWN / ON
+  {1,2}, // SW_SB2 = duplicate (no mid)
+  // ---- SC 3-pos ----
+  {2,0}, // SW_SC0 = UP
+  {2,1}, // SW_SC1 = MID
+  {2,2}, // SW_SC2 = DOWN
+  // ---- SD 2-pos ----
+  {3,0}, // SW_SD0 = UP / OFF
+  {3,2}, // SW_SD1 = DOWN / ON
+  {3,2}, // SW_SD2 = duplicate (no mid)
 };
 #elif defined(RADIO_TANGO)
 static const uint8_t switchPosition[][2] = {
@@ -280,7 +292,7 @@ extern uint8_t g_trimState;
 #define NUM_SWITCHES                    4  // TBS Tango имеет только 4 переключателя
 #define STORAGE_NUM_SWITCHES            NUM_SWITCHES
 // SA, SB - 2POS, SC, SD - 3POS (SD << 6, SC << 4, SB << 2, SA << 0)
-#define DEFAULT_SWITCH_CONFIG           (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_2POS << 2) + (SWITCH_2POS << 0)
+#define DEFAULT_SWITCH_CONFIG           (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_2POS << 2) + (SWITCH_3POS << 0)
 
 #define STORAGE_NUM_SWITCHES_POSITIONS  (STORAGE_NUM_SWITCHES * 3)
 #endif
