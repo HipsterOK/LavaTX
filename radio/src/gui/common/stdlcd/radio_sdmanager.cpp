@@ -222,6 +222,7 @@ void onSdManagerMenu(const char * result)
     device.flashFirmware(lfn);
   }
 #endif
+#endif
 #if defined(MULTIMODULE)
 #if defined(INTERNAL_MODULE_MULTI)
   else if (result == STR_FLASH_INTERNAL_MULTI) {
@@ -264,7 +265,6 @@ void onSdManagerMenu(const char * result)
     reusableBuffer.sdManager.otaUpdateInformation.module = (result == STR_FLASH_FLIGHT_CONTROLLER_BY_INTERNAL_MODULE_OTA ? INTERNAL_MODULE : EXTERNAL_MODULE);
     moduleState[reusableBuffer.sdManager.otaUpdateInformation.module].startBind(&reusableBuffer.sdManager.otaUpdateInformation, onUpdateStateChanged);
   }
-#endif
 #endif
 #if defined(LUA)
   else if (result == STR_EXECUTE_FILE) {
