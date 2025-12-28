@@ -94,9 +94,10 @@ add_definitions(-DESP_SERIAL)
 add_definitions(-DENABLE_ROTARY_INVERSE)
 
 if(INTERNAL_MODULE_CRSF)
-  # TBS Tango does not support hardware internal modules
-  # add_definitions(-DHARDWARE_INTERNAL_MODULE)
+  add_definitions(-DHARDWARE_INTERNAL_MODULE)
   add_definitions(-DINTERNAL_MODULE_CRSF)
+  add_definitions(-DCROSSFIRE)
+  add_definitions(-DTBS_RELEASE)
 endif()
 
 set(TARGET_SRC
