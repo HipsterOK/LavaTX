@@ -183,7 +183,6 @@ void flashWrite(uint32_t * address, const uint32_t * buffer);
 uint32_t isFirmwareStart(const uint8_t * buffer);
 uint32_t isBootloaderStart(const uint8_t * buffer);
 
-#define INTERNAL_MODULE_OFF()           crossfireTurnOffRf(false)
 #if defined(SIMU)
 #define IS_INTERNAL_MODULE_ON()         (false)
 #else
@@ -577,7 +576,8 @@ void telemetryPortInvertedInit(uint32_t baudrate);
 
 // external module driver
 void intmoduleStop();
-void intmoduleSerialStart(uint32_t baudrate, uint8_t rxEnable);
+void intmoduleSerialStart(uint32_t baudrate, uint8_t rxEnable, uint16_t parity, uint16_t stopBits, uint16_t wordLength);
+#define INTERNAL_MODULE_OFF()         intmoduleStop()
 void extmoduleStop();
 void extmodulePpmStart();
 void extmodulePxxPulsesStart();

@@ -574,4 +574,8 @@
 // S.Port update connector
 #define SPORT_MAX_BAUDRATE 400000
 
+// ELRS internal module baudrate (for compatibility)
+#define ELRS_INTERNAL_BAUDRATE        400000
+
+
 #endif // _HAL_H_
