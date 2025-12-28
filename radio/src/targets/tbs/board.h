@@ -706,6 +706,18 @@ bool usbChargerLed();
     #define LED_CHARGING_DONE()
   #endif
   #define ledPowerOn()    ledGreen()
+
+  // Новые функции для статусных LED TBS Tango
+  void statusLedInit(void);
+  void statusLedLowBattOn(void);
+  void statusLedLowBattOff(void);
+  void statusLedPwrOnOn(void);
+  void statusLedPwrOnOff(void);
+  void statusLedLinkOkOn(void);
+  void statusLedLinkOkOff(void);
+  void statusLedNoLinkOn(void);
+  void statusLedNoLinkOff(void);
+  void statusLedAllOff(void);
 #endif
 
 // LCD driver

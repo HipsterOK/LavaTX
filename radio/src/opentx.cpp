@@ -249,6 +249,25 @@ void per10ms()
   outputTelemetryBuffer.per10ms();
 
   heartbeat |= HEART_TIMER_10MS;
+
+#if defined(RADIO_FAMILY_TBS) && defined(RADIO_TANGO)
+  // Обновление статусных LED TBS Tango
+  if (getBatteryVoltage() < g_eeGeneral.vBatWarn * 10) {  // Низкий заряд (BATTERY_WARN в 10mV)
+    statusLedLowBattOn();
+  } else {
+    statusLedLowBattOff();
+  }
+
+  // Зеленый LED (пульт включен) уже включен в boardInit()
+
+  if (TELEMETRY_STREAMING()) {  // Связь установлена
+    statusLedLinkOkOn();
+    statusLedNoLinkOff();
+  } else {  // Связь потеряна
+    statusLedLinkOkOff();
+    statusLedNoLinkOn();
+  }
+#endif
 }
 
 FlightModeData *flightModeAddress(uint8_t idx)

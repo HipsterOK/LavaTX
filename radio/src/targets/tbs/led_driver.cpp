@@ -117,3 +117,83 @@ void ledBlue()
 {
   ledSetColour(RGB_COLOUR_BLUE);
 }
+
+// === Функции для статусных LED TBS Tango ===
+void statusLedInit(void)
+{
+  RCC_AHB1PeriphClockCmd(STATUS_LED_RCC_AHB1Periph, ENABLE);
+
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+
+  // Красный (низкий заряд) - PE8
+  GPIO_InitStructure.GPIO_Pin = LED_LOW_BATT_PIN;
+  GPIO_Init(LED_LOW_BATT_PORT, &GPIO_InitStructure);
+  GPIO_ResetBits(LED_LOW_BATT_PORT, LED_LOW_BATT_PIN); // Выключен по умолчанию
+
+  // Зеленый (пульт включен) - PE9
+  GPIO_InitStructure.GPIO_Pin = LED_PWR_ON_PIN;
+  GPIO_Init(LED_PWR_ON_PORT, &GPIO_InitStructure);
+  GPIO_ResetBits(LED_PWR_ON_PORT, LED_PWR_ON_PIN); // Выключен по умолчанию
+
+  // Зеленый (Связь установлена) - PE10
+  GPIO_InitStructure.GPIO_Pin = LED_LINK_OK_PIN;
+  GPIO_Init(LED_LINK_OK_PORT, &GPIO_InitStructure);
+  GPIO_ResetBits(LED_LINK_OK_PORT, LED_LINK_OK_PIN); // Выключен по умолчанию
+
+  // Красный (Связи нет) - PE11
+  GPIO_InitStructure.GPIO_Pin = LED_NO_LINK_PIN;
+  GPIO_Init(LED_NO_LINK_PORT, &GPIO_InitStructure);
+  GPIO_ResetBits(LED_NO_LINK_PORT, LED_NO_LINK_PIN); // Выключен по умолчанию
+}
+
+void statusLedLowBattOn(void)
+{
+  GPIO_SetBits(LED_LOW_BATT_PORT, LED_LOW_BATT_PIN);
+}
+
+void statusLedLowBattOff(void)
+{
+  GPIO_ResetBits(LED_LOW_BATT_PORT, LED_LOW_BATT_PIN);
+}
+
+void statusLedPwrOnOn(void)
+{
+  GPIO_SetBits(LED_PWR_ON_PORT, LED_PWR_ON_PIN);
+}
+
+void statusLedPwrOnOff(void)
+{
+  GPIO_ResetBits(LED_PWR_ON_PORT, LED_PWR_ON_PIN);
+}
+
+void statusLedLinkOkOn(void)
+{
+  GPIO_SetBits(LED_LINK_OK_PORT, LED_LINK_OK_PIN);
+}
+
+void statusLedLinkOkOff(void)
+{
+  GPIO_ResetBits(LED_LINK_OK_PORT, LED_LINK_OK_PIN);
+}
+
+void statusLedNoLinkOn(void)
+{
+  GPIO_SetBits(LED_NO_LINK_PORT, LED_NO_LINK_PIN);
+}
+
+void statusLedNoLinkOff(void)
+{
+  GPIO_ResetBits(LED_NO_LINK_PORT, LED_NO_LINK_PIN);
+}
+
+void statusLedAllOff(void)
+{
+  GPIO_ResetBits(LED_LOW_BATT_PORT, LED_LOW_BATT_PIN);
+  GPIO_ResetBits(LED_PWR_ON_PORT, LED_PWR_ON_PIN);
+  GPIO_ResetBits(LED_LINK_OK_PORT, LED_LINK_OK_PIN);
+  GPIO_ResetBits(LED_NO_LINK_PORT, LED_NO_LINK_PIN);
+}

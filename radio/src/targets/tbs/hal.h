@@ -271,6 +271,7 @@
 
 // Led
 #if defined(RADIO_TANGO)
+// Старый LED определение (для совместимости)
 #define LED_RCC_AHB1Periph (RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA1)
 #define LED_RCC_APB1Periph RCC_APB1Periph_TIM2
 #define LED_GPIO GPIOB
@@ -281,6 +282,26 @@
 #define LED_DMA_STREAM DMA1_Stream6
 #define LED_DMA_CHANNEL DMA_Channel_3
 #define LED_DMA_FLAG_TC DMA_FLAG_TCIF6
+
+// Новые LED индикаторы для TBS Tango
+#define STATUS_LED_RCC_AHB1Periph RCC_AHB1Periph_GPIOE
+#define STATUS_LED_GPIO GPIOE
+
+// Красный (низкий заряд) - PE8
+#define LED_LOW_BATT_PIN GPIO_Pin_8
+#define LED_LOW_BATT_PORT GPIOE
+
+// Зеленый (пульт включен) - PE9
+#define LED_PWR_ON_PIN GPIO_Pin_9
+#define LED_PWR_ON_PORT GPIOE
+
+// Зеленый (Связь установлена) - PE10
+#define LED_LINK_OK_PIN GPIO_Pin_10
+#define LED_LINK_OK_PORT GPIOE
+
+// Красный (Связи нет) - PE11
+#define LED_NO_LINK_PIN GPIO_Pin_11
+#define LED_NO_LINK_PORT GPIOE
 #define LED_DMA_FLAG_ERRORS (DMA_FLAG_FEIF6 | DMA_FLAG_DMEIF6 | DMA_FLAG_TEIF6 | DMA_FLAG_HTIF6)
 #endif
 

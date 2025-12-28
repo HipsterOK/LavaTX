@@ -342,13 +342,16 @@ void boardInit()
   crsfInit(); // Включаем CRSF с правильными настройками
   backlightInit(); // Инициализируем подсветку после CRSF
 
-  // Индикация: CRSF инициализирован - включаем LED_NO_LINK (PE11)
-  // GPIO_SetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11 - красный
+  // Инициализация статусных LED
+  statusLedInit();
+
+  // Индикация: CRSF инициализирован - включаем LED_NO_LINK (красный, связи нет)
+  statusLedNoLinkOn();
 
   usbInit(); // Включаем USB
 
-  // Индикация: прошли USB - включаем LED_LOW_BATT (PE8)
-  GPIO_SetBits(GPIOE, GPIO_Pin_8); // LED_LOW_BATT PE8 - красный
+  // Индикация: прошли USB - включаем LED_PWR_ON (зеленый, пульт включен)
+  statusLedPwrOnOn();
 
 #if defined(CHARGING_LEDS)
   ledInit();
