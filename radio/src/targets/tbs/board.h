@@ -42,10 +42,10 @@ void rotaryEncoderCheck();
 
 #if defined(RADIO_LAVA_ONE)
 #define MY_DEVICE_NAME                  "Lava One"
-#elif defined(RADIO_MAMBO)
-#define MY_DEVICE_NAME                  "Mambo"
 #elif defined(RADIO_TANGO)
-#define MY_DEVICE_NAME                  "Tango"
+#define MY_DEVICE_NAME                  "Lava One"
+#else
+#define MY_DEVICE_NAME                  "Mambo"
 #endif
 #define FLASHSIZE                       0xC0000
 #define BOOTLOADER_SIZE                 0xC000
@@ -547,10 +547,8 @@ void usbJoystickUpdate();
 #define USB_FIRMWARE_DEFAULT_MODE       USB_AGENT_MODE
 #define USB_NAME                        "Lava"
 #define USB_MANUFACTURER                'L', 'A', 'V', 'A', ' ', ' ', ' ', ' '  /* 8 bytes */
-#if defined(RADIO_LAVA_ONE)
+#if defined(RADIO_LAVA_ONE) || defined(RADIO_TANGO)
 #define USB_PRODUCT                     'O', 'n', 'e', ' ', ' ', ' ', ' ', ' '  /* 8 Bytes */
-#elif defined(RADIO_TANGO)
-#define USB_PRODUCT                     'T', 'a', 'n', 'g', 'o', ' ', ' ', ' '  /* 8 Bytes */
 #else
 #define USB_PRODUCT                     'M', 'a', 'm', 'b', 'o', ' ', ' ', ' '  /* 8 Bytes */
 #endif
