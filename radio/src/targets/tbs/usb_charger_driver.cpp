@@ -29,7 +29,7 @@ void usbChargerInit(void)
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9; // PA9 - USB VBUS
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; // pull-down для надежности
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP; // pull-up: HIGH = нет зарядки, LOW = зарядка
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 #else
   // Для других плат используем стандартные пины зарядки
