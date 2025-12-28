@@ -531,12 +531,11 @@ void backlightDisable(void);
 uint8_t isBacklightEnabled(void);
 void backlightEnable(uint8_t level);
 #elif defined(RADIO_TANGO)
-// Простая подсветка кнопок с программным PWM
+// Простая подсветка кнопок — включается/выключается
 void backlightInit(void);
 void backlightDisable(void);
 void backlightEnable(uint8_t level);
 uint8_t isBacklightEnabled(void);
-void backlightUpdate(void);
 #endif
 
   #define BACKLIGHT_DISABLE()             backlightDisable()
