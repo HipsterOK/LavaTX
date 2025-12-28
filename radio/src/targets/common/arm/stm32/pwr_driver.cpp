@@ -33,39 +33,50 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ТЕСТ PB12 RAW REGISTERS: прямой доступ к регистрам GPIO (обход RTOS)
-  // Если HAL функции не работают из-за RTOS - используем raw registers
+  // ТЕСТ GPIO: проверяем можем ли мы вообще управлять GPIO
+  // PB12 всегда HIGH по данным логического анализатора
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
-  // Настраиваем PB12 через raw registers
-  // MODER: PB12 как output (01)
-  GPIOB->MODER &= ~(GPIO_MODER_MODER12);    // Сбрасываем биты
-  GPIOB->MODER |= GPIO_MODER_MODER12_0;     // Устанавливаем как output
+  // Тестируем PB13 (который должен работать, там MLX)
+  GPIOB->MODER &= ~(GPIO_MODER_MODER13);    // PB13 output
+  GPIOB->MODER |= GPIO_MODER_MODER13_0;
+  GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_13);    // Push-pull
+  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR13);    // No pull
+  GPIOB->BSRRH = GPIO_Pin_13;               // LOW
 
-  // OTYPER: PB12 как open-drain (1)
-  GPIOB->OTYPER |= GPIO_OTYPER_OT_12;
+  TRACE("GPIO_TEST: PB13 set to LOW - checking if GPIO works\n");
+  TRACE("GPIO_TEST: PB13 ODR = %d, IDR = %d\n",
+        (GPIOB->ODR & GPIO_Pin_13) ? 1 : 0,
+        (GPIOB->IDR & GPIO_Pin_13) ? 1 : 0);
 
-  // PUPDR: PB12 pull-down (10)
-  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);    // Сбрасываем
-  GPIOB->PUPDR |= GPIO_PUPDR_PUPDR12_1;     // Pull-down
+  // Тестируем PB12 - попробуем разные конфигурации
+  GPIOB->MODER &= ~(GPIO_MODER_MODER12);    // Output
+  GPIOB->MODER |= GPIO_MODER_MODER12_0;
+  GPIOB->OTYPER |= GPIO_OTYPER_OT_12;       // Open-drain
+  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);    // No pull сначала
+  GPIOB->BSRRH = GPIO_Pin_12;               // LOW
 
-  // OSPEEDR: Low speed
-  GPIOB->OSPEEDR &= ~(GPIO_OSPEEDER_OSPEEDR12);
+  TRACE("GPIO_TEST: PB12 set to LOW (open-drain, no pull)\n");
+  TRACE("GPIO_TEST: PB12 ODR = %d, IDR = %d\n",
+        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
 
-  // Устанавливаем LOW через BSRR (сброс бита)
-  GPIOB->BSRRH = GPIO_Pin_12;  // Atomic reset
-  TRACE("PWR_INIT RAW: PB12 configured as OPEN-DRAIN OUTPUT LOW via raw registers\n");
-  TRACE("PWR_INIT RAW: PB12 level = %d (should be 0)\n", (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0);
-
-  // Проверяем что PB12 действительно LOW
-  TRACE("PWR_INIT RAW: PB12 input level = %d\n", (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
-
-  // Задержка для проверки
-  volatile uint32_t delay = 1000000; // ~1 сек
+  // Задержка
+  volatile uint32_t delay = 500000; // 0.5 сек
   while (delay--) { __ASM volatile("nop"); }
 
-  // Если система дошла сюда - PB12 не управляет питанием
-  TRACE("PWR_INIT RAW: System still running - PB12 raw control failed\n");
+  // Попробуем с pull-down
+  GPIOB->PUPDR |= GPIO_PUPDR_PUPDR12_1;     // Pull-down
+  TRACE("GPIO_TEST: PB12 with pull-down added\n");
+  TRACE("GPIO_TEST: PB12 ODR = %d, IDR = %d\n",
+        (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0,
+        (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+
+  // Еще задержка
+  delay = 500000; // 0.5 сек
+  while (delay--) { __ASM volatile("nop"); }
+
+  TRACE("GPIO_TEST: PB12 always HIGH according to logic analyzer - hardware issue\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
