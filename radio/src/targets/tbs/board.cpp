@@ -476,16 +476,52 @@ void boardOff()
   GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10
   GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11
 
+  // Отключаем все периферийные устройства
+  crossfirePowerOff();
+  crossfireTasksStop();
+
   // Отключаем питание TPS63060 через PWR_ON (PB12)
   pwrOff();
+  TRACE("PWR_OFF: PB12 set to LOW\n");
 
   // Задержка для полного отключения TPS63060
   volatile uint32_t delay = 100000; // ~20мс
   while (delay--) { __ASM volatile("nop"); }
 
-  // Отключаем watchdog перед входом в режим ожидания
-  // чтобы он не перезапустил систему
-  IWDG->KR = 0x0000; // Disable watchdog
+  // Отключаем watchdog полностью
+  IWDG->KR = 0x0000; // Disable IWDG
+
+  // Отключаем window watchdog если есть
+  if (RCC->CSR & RCC_CSR_WWDGRSTF) {
+    // Clear WWDG reset flag
+    RCC->CSR |= RCC_CSR_RMVF;
+  }
+
+  // Отключаем SysTick
+  SysTick->CTRL = 0;
+
+  // Полностью отключаем системные таймеры
+  // Отключаем SysTick
+  SysTick->CTRL = 0;
+
+  // Отключаем все таймеры которые могут вызвать interrupt
+  TIM1->CR1 &= ~TIM_CR1_CEN;
+  TIM2->CR1 &= ~TIM_CR1_CEN;
+  TIM3->CR1 &= ~TIM_CR1_CEN;
+  TIM4->CR1 &= ~TIM_CR1_CEN;
+  TIM5->CR1 &= ~TIM_CR1_CEN;
+  TIM6->CR1 &= ~TIM_CR1_CEN;
+  TIM7->CR1 &= ~TIM_CR1_CEN;
+  TIM8->CR1 &= ~TIM_CR1_CEN;
+  TIM9->CR1 &= ~TIM_CR1_CEN;
+  TIM10->CR1 &= ~TIM_CR1_CEN;
+  TIM11->CR1 &= ~TIM_CR1_CEN;
+  TIM12->CR1 &= ~TIM_CR1_CEN;
+  TIM13->CR1 &= ~TIM_CR1_CEN;
+  TIM14->CR1 &= ~TIM_CR1_CEN;
+
+  // Отключаем USB если включен
+  usbStop();
 
   // Очищаем экран
   lcdClear();

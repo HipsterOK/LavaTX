@@ -35,8 +35,12 @@ void pwrOn()
 
 void pwrOff()
 {
-  // PWR_ON управляет EN пином TPS63060
+  // TPS63060 EN pin: LOW = shutdown, HIGH = enable
+  // Для полного отключения устанавливаем LOW
   GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+
+  // Дополнительно: отключаем GPIO clock для экономии энергии
+  // GPIO_DeInit(PWR_ON_GPIO); // Не делаем, может понадобиться для wakeup
 }
 
 bool pwrPressed()
