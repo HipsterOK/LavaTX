@@ -249,6 +249,11 @@ static void runPwrOffCharging(void)
       }
     }
   }
+
+  // Если мы здесь, значит USB был отключен - очищаем экран
+  TRACE("USB unplugged, clearing display...\n");
+  lcdClear();
+  lcdOff();
 }
 static char g_battDebugMsg[40];
 
