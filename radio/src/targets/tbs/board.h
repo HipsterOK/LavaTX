@@ -236,7 +236,7 @@ enum EnumSwitches
   SW_SE,
   SW_SF,
 };
-#define IS_3POS(x)                      ((x) == SW_SA || (x) == SW_SC)
+#define IS_3POS(x)                      ((x) == SW_SC || (x) == SW_SD)  // SC и SD - трехпозиционные
 
 enum EnumSwitchesPositions
 {
@@ -277,9 +277,10 @@ extern uint8_t g_trimState;
 #define NUM_SWITCHES                        6
 #define STORAGE_NUM_SWITCHES_POSITIONS  (STORAGE_NUM_SWITCHES * 3)
 #elif defined(RADIO_TANGO)
-#define NUM_SWITCHES                    6
+#define NUM_SWITCHES                    4  // TBS Tango имеет только 4 переключателя
 #define STORAGE_NUM_SWITCHES            NUM_SWITCHES
-#define DEFAULT_SWITCH_CONFIG           (SWITCH_TOGGLE << 10) + (SWITCH_TOGGLE << 8) + (SWITCH_2POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_3POS << 0)
+// SA, SB - 2POS, SC, SD - 3POS (SD << 6, SC << 4, SB << 2, SA << 0)
+#define DEFAULT_SWITCH_CONFIG           (SWITCH_3POS << 6) + (SWITCH_3POS << 4) + (SWITCH_2POS << 2) + (SWITCH_2POS << 0)
 
 #define STORAGE_NUM_SWITCHES_POSITIONS  (STORAGE_NUM_SWITCHES * 3)
 #endif
