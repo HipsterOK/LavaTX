@@ -523,6 +523,9 @@ void boardOff()
   // Отключаем USB если включен
   usbStop();
 
+  // Добавляем debug информацию перед входом в цикл
+  TRACE("ENTERING POWER OFF LOOP - ALL TIMERS DISABLED\n");
+
   // Очищаем экран
   lcdClear();
   lcdOff();

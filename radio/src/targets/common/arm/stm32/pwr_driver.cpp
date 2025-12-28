@@ -35,12 +35,22 @@ void pwrOn()
 
 void pwrOff()
 {
-  // TPS63060 EN pin: LOW = shutdown, HIGH = enable
-  // Для полного отключения устанавливаем LOW
-  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+  // Метод: переконфигурируем PB12 как input с pull-down для гарантированного LOW
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; // pull-down для гарантированного LOW на EN
+  GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // Дополнительно: отключаем GPIO clock для экономии энергии
-  // GPIO_DeInit(PWR_ON_GPIO); // Не делаем, может понадобиться для wakeup
+  TRACE("PWR_OFF: PB12 reconfigured as INPUT with PULL-DOWN\n");
+
+  // Проверяем уровень на PB12
+  TRACE("PWR_OFF: PB12 pin state = %d (should be 0)\n",
+        GPIO_ReadInputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
+
+  // Небольшая задержка для стабилизации
+  volatile uint32_t delay = 10000;
+  while (delay--) { __ASM volatile("nop"); }
 }
 
 bool pwrPressed()
