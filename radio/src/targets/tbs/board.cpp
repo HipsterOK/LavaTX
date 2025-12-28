@@ -541,6 +541,13 @@ uint16_t getBatteryVoltage()
   instant_vbat = (instant_vbat * 660) / 4095;
   instant_vbat += g_eeGeneral.txVoltageCalibration;
 
+  // TRACE отладка каждые 10 секунд
+  static uint32_t lastTrace = 0;
+  if (get_tmr10ms() - lastTrace > 10000) {  // каждые 10 секунд
+    TRACE("Battery: RAW=%d ANA=%d VBAT=%d (cal=%d)", adcValues[TX_VOLTAGE], anaIn(TX_VOLTAGE), instant_vbat, g_eeGeneral.txVoltageCalibration);
+    lastTrace = get_tmr10ms();
+  }
+
   return (uint16_t)instant_vbat;
 }
 
