@@ -19,8 +19,13 @@ void backlightInit()
 
 void backlightEnable(uint8_t level)
 {
-  (void)level; // пока без PWM
-  GPIO_SetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);
+  if (level == 0) {
+    // Выключить подсветку
+    GPIO_ResetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);
+  } else {
+    // Включить подсветку
+    GPIO_SetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);
+  }
 }
 
 void backlightDisable()

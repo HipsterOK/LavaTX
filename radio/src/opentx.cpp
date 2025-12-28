@@ -2157,7 +2157,9 @@ void opentxInit()
 
   referenceSystemAudioFiles();
   audioQueue.start();
+#if !defined(RADIO_FAMILY_TBS)
   BACKLIGHT_ENABLE();
+#endif
 
 #if defined(PCBSKY9X)
   // Set ADC gains here
@@ -2214,7 +2216,9 @@ void opentxInit()
   lcdSetContrast();
 #endif
 
+#if !defined(RADIO_FAMILY_TBS) || defined(GUI)
   resetBacklightTimeout();
+#endif
 
   startPulses();
 
