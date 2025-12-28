@@ -597,42 +597,35 @@ void boardOff()
   // Отключаем SysTick
   SysTick->CTRL = 0;
 
-  // Настраиваем wakeup от PA3 через polling с debounce
-  TRACE("ENTERING POLLING SLEEP LOOP WITH DEBOUNCE\n");
+  // Глубокий sleep режим с WFI для минимального потребления
+  // Поскольку hardware отключение питания не работает,
+  // используем software deep sleep
+  TRACE("ENTERING DEEP SLEEP WITH WFI - MINIMUM POWER MODE\n");
 
-  uint32_t sleepCount = 0;
-  uint8_t buttonPressCount = 0;
+  // Отключаем все interrupts для минимального потребления
+  __disable_irq();
+
+  // Основной sleep loop
   while (1) {
-    sleepCount++;
-    if (sleepCount % 10 == 0) {  // Каждые 100ms
-      if (pwrPressed()) {
-        buttonPressCount++;
-        if (buttonPressCount >= 3) {  // Debounce: 3 последовательных чтения
-          TRACE("WAKEUP: Button pressed and debounced (%d counts)\n", buttonPressCount);
+    // Проверяем кнопку перед WFI
+    if (pwrPressed()) {
+      TRACE("WAKEUP: Button pressed in deep sleep\n");
 
-          // Восстанавливаем RCC
-          RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+      // Восстанавливаем систему
+      __enable_irq();
 
-          // Устанавливаем PB12 в HIGH через pwrOn()
-          pwrOn();
+      // Восстанавливаем RCC
+      RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-          // Небольшая задержка перед reset
-          volatile uint32_t delay = 10000;
-          while (delay--) { __ASM volatile("nop"); }
+      // Включаем питание
+      pwrOn();
 
-          // Полная перезагрузка
-          NVIC_SystemReset();
-        }
-      } else {
-        buttonPressCount = 0; // Сбрасываем при отпускании
-      }
+      // Перезагрузка для чистого старта
+      NVIC_SystemReset();
     }
 
-    // Минимальная задержка для экономии энергии
-    volatile uint32_t delay = 1000; // ~100us
-    while (delay--) {
-      __ASM volatile("nop");
-    }
+    // WFI - Wait For Interrupt (уменьшает потребление даже без interrupts)
+    __WFI();
   }
 }
 
