@@ -279,6 +279,12 @@ void boardInit()
   // ВКЛЮЧАЕМ PE12 НЕМЕДЛЕННО - если это сработает, значит GPIOE работает
   GPIO_SetBits(GPIOE, GPIO_Pin_12);
 
+  // Инициализация SD_DETECT (PC5) как вход с pull-up
+  GPIO_InitStructure.GPIO_Pin = SD_DETECT_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(SD_DETECT_GPIO_PORT, &GPIO_InitStructure);
+
   // Маленькая задержка для визуального подтверждения
   volatile uint32_t delay = 100000;
   while (delay--) { __ASM volatile("nop"); }
