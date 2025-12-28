@@ -1358,6 +1358,12 @@ void getADC()
 
   DEBUG_TIMER_START(debugTimerAdcRead);
   adcRead();
+
+  // Для TBS запускаем АЦП для аналоговых входов
+#if defined(RADIO_FAMILY_TBS)
+  ADC_MAIN->CR2 |= ADC_CR2_SWSTART;  // Запускаем преобразование
+#endif
+
   DEBUG_TIMER_STOP(debugTimerAdcRead);
 
   // Отладка для TBS
