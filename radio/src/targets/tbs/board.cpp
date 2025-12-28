@@ -346,7 +346,6 @@ void boardInit()
   adcInit();
 #if defined(RADIO_MAMBO)
   backlightInit();
-  BACKLIGHT_ENABLE();
 #endif
   backlightInit();
   // Подсветка будет управляться через события в perMain()
