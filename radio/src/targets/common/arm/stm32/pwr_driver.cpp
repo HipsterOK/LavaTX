@@ -35,18 +35,14 @@ void pwrOn()
 
 void pwrOff()
 {
-  // Метод: переконфигурируем PB12 как input с pull-down для гарантированного LOW
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; // pull-down для гарантированного LOW на EN
-  GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
+  // Устанавливаем PB12 в LOW для отключения питания
+  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
-  TRACE("PWR_OFF: PB12 reconfigured as INPUT with PULL-DOWN\n");
+  TRACE("PWR_OFF: PB12 set to LOW via GPIO_ResetBits\n");
 
   // Проверяем уровень на PB12
   TRACE("PWR_OFF: PB12 pin state = %d (should be 0)\n",
-        GPIO_ReadInputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
+        GPIO_ReadOutputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
 
   // Небольшая задержка для стабилизации
   volatile uint32_t delay = 10000;

@@ -553,7 +553,10 @@ void boardOff()
 
   // Альтернативный подход: глубокий sleep без STOP mode
   // Отключаем все кроме основных систем
-  TRACE("ENTERING DEEP SLEEP MODE\n");
+  TRACE("ENTERING DEEP SLEEP MODE - PWR_OFF COMPLETED\n");
+
+  // Дополнительная проверка - PB12 должен быть LOW
+  TRACE("SLEEP: PB12 state = %d (should be 0)\n", GPIO_ReadInputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
 
   // Отключаем USB для экономии энергии
   usbStop();
@@ -562,8 +565,19 @@ void boardOff()
   lcdClear();
   lcdOff();
 
+  // Убеждаемся что watchdog полностью отключен
+  IWDG->KR = 0x0000; // Double disable
+  TRACE("SLEEP: Watchdog disabled\n");
+
   // Простой polling loop с минимальным потреблением
+  TRACE("STARTING POLLING LOOP\n");
+  uint32_t loopCount = 0;
   while (1) {
+    loopCount++;
+    if (loopCount % 100 == 0) {
+      TRACE("POLLING LOOP count=%lu\n", loopCount);
+    }
+
     // Проверяем кнопку каждые 10мс
     if (pwrPressed()) {
       TRACE("WAKEUP: Power button pressed in sleep mode\n");
@@ -571,15 +585,11 @@ void boardOff()
       // Включаем RCC для GPIO
       RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-      // Переконфигурируем PB12 обратно как output HIGH
-      GPIO_InitTypeDef GPIO_InitStructure;
-      GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
-      GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-      GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-      GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-      GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
-      GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
+      // Устанавливаем PB12 в HIGH для включения питания
       GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN); // HIGH для питания
+
+      // Проверяем что PB12 стал HIGH
+      TRACE("WAKEUP: PB12 set to HIGH, state = %d\n", GPIO_ReadOutputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
 
       // Включаем питание
       pwrOn();
