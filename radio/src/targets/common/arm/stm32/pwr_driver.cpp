@@ -33,25 +33,39 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ТЕСТ PA0: проверяем свободный GPIO pin для управления питанием
-  // PA0 обычно свободен и может использоваться для power control
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+  // ТЕСТ PB12 RAW REGISTERS: прямой доступ к регистрам GPIO (обход RTOS)
+  // Если HAL функции не работают из-за RTOS - используем raw registers
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
-  GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_0;       // PA0 - тест нового пина
-  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;   // Output
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;   // Push-pull
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;  // Pull-down
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_Init(GPIOA, &GPIO_InitStructure);
+  // Настраиваем PB12 через raw registers
+  // MODER: PB12 как output (01)
+  GPIOB->MODER &= ~(GPIO_MODER_MODER12);    // Сбрасываем биты
+  GPIOB->MODER |= GPIO_MODER_MODER12_0;     // Устанавливаем как output
 
-  // Устанавливаем LOW навсегда для теста
-  GPIO_ResetBits(GPIOA, GPIO_Pin_0);
-  TRACE("PWR_INIT TEST: PA0 set to LOW permanently - testing new power control pin\n");
+  // OTYPER: PB12 как open-drain (1)
+  GPIOB->OTYPER |= GPIO_OTYPER_OT_12;
 
-  // PB12 и PB13 оставляем в HIGH
-  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
-  GPIO_SetBits(GPIOB, GPIO_Pin_13);
-  TRACE("PWR_INIT: PB12 and PB13 set to HIGH\n");
+  // PUPDR: PB12 pull-down (10)
+  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);    // Сбрасываем
+  GPIOB->PUPDR |= GPIO_PUPDR_PUPDR12_1;     // Pull-down
+
+  // OSPEEDR: Low speed
+  GPIOB->OSPEEDR &= ~(GPIO_OSPEEDER_OSPEEDR12);
+
+  // Устанавливаем LOW через BSRR (сброс бита)
+  GPIOB->BSRRH = GPIO_Pin_12;  // Atomic reset
+  TRACE("PWR_INIT RAW: PB12 configured as OPEN-DRAIN OUTPUT LOW via raw registers\n");
+  TRACE("PWR_INIT RAW: PB12 level = %d (should be 0)\n", (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0);
+
+  // Проверяем что PB12 действительно LOW
+  TRACE("PWR_INIT RAW: PB12 input level = %d\n", (GPIOB->IDR & GPIO_Pin_12) ? 1 : 0);
+
+  // Задержка для проверки
+  volatile uint32_t delay = 1000000; // ~1 сек
+  while (delay--) { __ASM volatile("nop"); }
+
+  // Если система дошла сюда - PB12 не управляет питанием
+  TRACE("PWR_INIT RAW: System still running - PB12 raw control failed\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
