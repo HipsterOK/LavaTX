@@ -832,7 +832,12 @@ void checkBacklight()
 
 void resetBacklightTimeout()
 {
+  // Для TBS делаем таймаут короче для тестирования: 5 секунд вместо рассчитанного
+  #if defined(RADIO_FAMILY_TBS)
+  lightOffCounter = 500; // 5 секунд (500 * 10мс)
+  #else
   lightOffCounter = ((uint16_t)g_eeGeneral.lightAutoOff*250) << 1;
+  #endif
 }
 
 #if MENUS_LOCK == 1
@@ -2214,7 +2219,9 @@ void opentxInit()
   lcdSetContrast();
 #endif
 
+#if !defined(RADIO_FAMILY_TBS)
   resetBacklightTimeout();
+#endif
 
   startPulses();
 
