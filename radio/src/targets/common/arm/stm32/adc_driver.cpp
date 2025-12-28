@@ -302,10 +302,10 @@ void adcRead()
   hall90393_read_xyz(2, &x2, &y2, &z2);    // Правый стик
 
   // --- Кросс-коррекция осей ---
-  float fx1 = y1 - K_CROSS_L * x1;  // Левый X из Y (оси перепутаны)
-  float fy1 = x1 - K_CROSS_L * y1;  // Левый Y из X
-  float fx2 = -x2 - K_CROSS_R * y2; // Правый X инвертирован
-  float fy2 = y2 - K_CROSS_R * x2;
+  float fx1 = -x1 - K_CROSS_L * y1; // Левый X инвертирован (лево-право)
+  float fy1 = y1 - K_CROSS_L * x1;
+  float fx2 = x2 - K_CROSS_R * y2;
+  float fy2 = -y2 - K_CROSS_R * x2; // Правый Y инвертирован (вверх-вниз)
 
   int16_t raw[4] = {
       (int16_t)fx1,
