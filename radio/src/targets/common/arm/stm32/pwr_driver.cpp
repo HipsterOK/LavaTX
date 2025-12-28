@@ -33,33 +33,50 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ТЕСТ PB12: цикл переключения в pwrInit()
-  // Пользователь хочет видеть PB12 на анализаторе
-  TRACE("PB12_CYCLE_TEST: Starting PB12 toggle cycle in pwrInit()\n");
+  // ПРОВЕРКА PB12: отключаем JTAG/SWD пины
+  // PB12 может быть JTMS/SWDIO - нужно отключить JTAG/SWD
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
-  // Цикл переключения PB12 - 10 раз туда-сюда
-  for (int cycle = 0; cycle < 10; cycle++) {
-    // HIGH на 0.5 секунды
+  // Отключаем JTAG, оставляем только SWD (2-wire debug)
+  // SYSCFG_MEMRMP[2:1] = 10 - JTAG-DP Disabled, SW-DP Enabled
+  SYSCFG->MEMRMP &= ~(0x3 << 1);  // Сбрасываем биты 2:1
+  SYSCFG->MEMRMP |= (0x2 << 1);   // Устанавливаем 10 (SW-DP only)
+
+  TRACE("PB12_JTAG_DISABLE: JTAG disabled, SWD enabled - PB12 should be GPIO\n");
+
+  // Настраиваем PB12 как обычный GPIO
+  GPIOB->MODER &= ~(GPIO_MODER_MODER12);    // Сбрасываем
+  GPIOB->MODER |= GPIO_MODER_MODER12_0;     // Output
+  GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_12);    // Push-pull
+  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);    // No pull
+  GPIOB->AFR[1] &= ~(0xF << 16);            // AF0 (GPIO)
+
+  TRACE("PB12_JTAG_DISABLE: PB12 configured as GPIO output\n");
+
+  // Тестируем PB12
+  for (int cycle = 0; cycle < 5; cycle++) {
+    // HIGH
     GPIOB->BSRRL = GPIO_Pin_12;
-    TRACE("PB12_CYCLE_TEST: Cycle %d - HIGH (0.5s)\n", cycle + 1);
+    TRACE("PB12_JTAG_DISABLE: Cycle %d - HIGH, ODR=%d\n", cycle + 1,
+          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0);
 
-    volatile uint32_t delay = 500000; // ~0.5 сек
+    volatile uint32_t delay = 300000; // 0.3 сек
     while (delay--) { __ASM volatile("nop"); }
 
-    // LOW на 0.5 секунды
+    // LOW
     GPIOB->BSRRH = GPIO_Pin_12;
-    TRACE("PB12_CYCLE_TEST: Cycle %d - LOW (0.5s)\n", cycle + 1);
+    TRACE("PB12_JTAG_DISABLE: Cycle %d - LOW, ODR=%d\n", cycle + 1,
+          (GPIOB->ODR & GPIO_Pin_12) ? 1 : 0);
 
-    delay = 500000; // ~0.5 сек
+    delay = 300000; // 0.3 сек
     while (delay--) { __ASM volatile("nop"); }
   }
 
-  TRACE("PB12_CYCLE_TEST: Cycle completed - check logic analyzer!\n");
-  TRACE("PB12_CYCLE_TEST: Did PB12 actually toggle HIGH/LOW?\n");
+  TRACE("PB12_JTAG_DISABLE: Test completed - check if PB12 toggles now!\n");
 
-  // Финальное состояние - LOW для теста питания
+  // Финальное состояние - LOW
   GPIOB->BSRRH = GPIO_Pin_12;
-  TRACE("PB12_CYCLE_TEST: Final state - LOW\n");
+  TRACE("PB12_JTAG_DISABLE: Final state - LOW\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
