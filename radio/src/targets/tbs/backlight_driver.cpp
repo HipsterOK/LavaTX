@@ -28,21 +28,21 @@ void backlightInit(void)
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
   GPIO_Init(BACKLIGHT_GPIO, &GPIO_InitStructure);
 }
 
 void backlightDisable(void)
 {
-  GPIO_ResetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
+  GPIO_SetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN); // Инвертированная логика для подсветки кнопок
 }
 
 void backlightEnable(uint8_t level)
 {
   if (level > 0) {
-    GPIO_SetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
+    GPIO_ResetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN); // Инвертированная логика для подсветки кнопок
   } else {
-    GPIO_ResetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
+    GPIO_SetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);
   }
 }
 #elif defined(RADIO_MAMBO)
