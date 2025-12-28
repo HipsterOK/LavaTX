@@ -539,7 +539,8 @@ uint8_t isBacklightEnabled(void);
 #endif
 
   #define BACKLIGHT_DISABLE()             backlightDisable()
-  #define BACKLIGHT_ENABLE()              backlightEnable(0)
+  extern uint8_t currentBacklightBright;
+#define BACKLIGHT_ENABLE()              backlightEnable(currentBacklightBright)
   #define BACKLIGHT_LEVEL_MAX             100
 #endif
 

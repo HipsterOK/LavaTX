@@ -133,15 +133,10 @@ void per10ms()
   if (noHighlightCounter) noHighlightCounter--;
 #endif
 
-// Для TBS подсветка должна выключаться по таймауту
-#if defined(RADIO_FAMILY_TBS)
+#if defined(GUI)
   if (lightOffCounter) lightOffCounter--;
-
-  // Дополнительная логика выключения для TBS
-  extern uint32_t lastKeyPressTime;
-  if (g_tmr10ms - lastKeyPressTime > 500) { // 5 секунд
-    backlightDisable();
-  }
+  if (flashCounter) flashCounter--;
+  if (noHighlightCounter) noHighlightCounter--;
 #endif
 
   if (trimsCheckTimer) trimsCheckTimer--;
@@ -830,12 +825,7 @@ void checkBacklight()
         BACKLIGHT_ENABLE();
       }
       else {
-        // Для TBS принудительно выключаем подсветку
-        #if defined(RADIO_FAMILY_TBS)
-        backlightDisable();
-        #else
         BACKLIGHT_DISABLE();
-        #endif
       }
     }
   }
@@ -843,12 +833,7 @@ void checkBacklight()
 
 void resetBacklightTimeout()
 {
-  // Для TBS делаем таймаут короче для тестирования: 5 секунд вместо рассчитанного
-  #if defined(RADIO_FAMILY_TBS)
-  lightOffCounter = 500; // 5 секунд (500 * 10мс)
-  #else
   lightOffCounter = ((uint16_t)g_eeGeneral.lightAutoOff*250) << 1;
-  #endif
 }
 
 #if MENUS_LOCK == 1
@@ -1454,7 +1439,6 @@ void getADC()
 uint8_t g_vbat100mV = 0;
 uint16_t lightOffCounter;
 uint8_t flashCounter = 0;
-uint32_t lastKeyPressTime = 0;
 
 uint16_t sessionTimer;
 uint16_t s_timeCumThr;    // THR in 1/16 sec
