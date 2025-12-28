@@ -1336,6 +1336,10 @@ tmr10ms_t jitterResetTime = 0;
 #if !defined(SIMU)
 uint16_t anaIn(uint8_t chan)
 {
+#if defined(RADIO_FAMILY_TBS)
+  if( chan <= STICK4 )
+    return crossfireSharedData.sticks[chan];
+#endif
   return ANA_FILT(chan);
 }
 

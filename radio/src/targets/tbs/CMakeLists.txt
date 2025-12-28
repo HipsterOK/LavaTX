@@ -176,6 +176,7 @@ set(FIRMWARE_TARGET_SRC
   backlight_driver.cpp
   ../common/arm/stm32/pwr_driver.cpp
   ../common/arm/stm32/sdio_sd.c
+  ../common/arm/stm32/hall90393.cpp
   )
 
 if (PCB STREQUAL TANGO)

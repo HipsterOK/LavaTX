@@ -19,6 +19,7 @@
  */
 
 #include "opentx.h"
+#include "hall90393.h"
 
 #define DEADZONE 3500
 
@@ -72,8 +73,8 @@
   #define NUM_ANALOGS_ADC              11
   #define NUM_ANALOGS_ADC_EXT          (NUM_ANALOGS - NUM_ANALOGS_ADC)
 #elif defined(RADIO_TANGO)
-  #define FIRST_ANALOG_ADC             0  // Считываем все каналы включая стики
-  #define NUM_ANALOGS_ADC              NUM_ANALOGS
+  #define FIRST_ANALOG_ADC             TX_VOLTAGE  // Только батарея начиная с TX_VOLTAGE
+  #define NUM_ANALOGS_ADC              (NUM_ANALOGS - FIRST_ANALOG_ADC)
 #elif defined(RADIO_MAMBO)
   #define FIRST_ANALOG_ADC             POT1
   #define NUM_ANALOGS_ADC              (NUM_ANALOGS - FIRST_ANALOG_ADC)
@@ -145,9 +146,8 @@ void adcInit()
   ADC_MAIN->SQR2 = (ADC_CHANNEL_BATT << 0) + (ADC_Channel_Vbat << 5);
   ADC_MAIN->SQR3 = (ADC_CHANNEL_STICK_LH << 0) + (ADC_CHANNEL_STICK_LV << 5) + (ADC_CHANNEL_STICK_RV << 10) + (ADC_CHANNEL_STICK_RH << 15);
 #elif defined(RADIO_TANGO)
-  // TBS Tango: попробуем считать стики через ADC каналы 0-3, батарею через 4
-  ADC_MAIN->SQR2 = (ADC_CHANNEL_BATT << 0) + (ADC_Channel_Vbat << 5);
-  ADC_MAIN->SQR3 = (0 << 0) + (1 << 5) + (2 << 10) + (3 << 15);  // ADC channels 0,1,2,3 for sticks
+  ADC_MAIN->SQR2 = 0;
+  ADC_MAIN->SQR3 = (ADC_CHANNEL_BATT<<0) + (ADC_Channel_Vbat<<5);  // Только батарея и VBAT
 #elif defined(RADIO_MAMBO)
   ADC_MAIN->SQR2 = (ADC_CHANNEL_SWITCH_D << 0) + (ADC_CHANNEL_BATT << 5) + (ADC_Channel_Vbat << 10);
   ADC_MAIN->SQR3 = (ADC_CHANNEL_POT1 << 0) + (ADC_CHANNEL_POT2 << 5) + (ADC_CHANNEL_TRIM << 10) + (ADC_CHANNEL_SWITCH_A << 15) + (ADC_CHANNEL_SWITCH_B << 20) + (ADC_CHANNEL_SWITCH_C << 25);
@@ -259,8 +259,15 @@ static inline int16_t applyDeadzone(int16_t val) {
     return (val > -DEADZONE && val < DEADZONE) ? 0 : val;
 }
 
+// === Константы фильтра и коррекции ===
+#define STICK_JITTER   4        // Порог дребезга (можно 2-4)
+#define STICK_DEADBAND ((int)(0.07f * 2048)) // ≈143
+#define K_CROSS_L      0.08f    // Подбирай под свой магнит
+#define K_CROSS_R      0.08f
+
 void adcRead()
 {
+  // Сначала читаем ADC для батареи
   uint16_t temp[NUM_ANALOGS] = { 0 };
 
   for (int i = 0; i < 4; i++) {
@@ -286,11 +293,52 @@ void adcRead()
   }
 #endif
 
-#if defined(RADIO_FAMILY_TBS) && defined(INTERNAL_MODULE_CRSF)
-  // Для TBS Tango записываем значения стиков в crossfireSharedData из ADC
-  for (int i = 0; i < 4; i++) {
-    crossfireSharedData.sticks[i] = adcValues[i];  // Реальные ADC значения стиков
+  // Теперь читаем hall датчики для стиков (только для TBS)
+#if defined(RADIO_FAMILY_TBS)
+  hall90393_lazy_init();
+
+  int16_t x1, y1, z1, x2, y2, z2;
+  hall90393_read_xyz(1, &x1, &y1, &z1);    // Левый стик
+  hall90393_read_xyz(2, &y2, &x2, &z2);    // Правый стик
+
+  // --- Кросс-коррекция осей ---
+  float fx1 = x1 - K_CROSS_L * y1;
+  float fy1 = y1 - K_CROSS_L * x1;
+  float fx2 = -x2 - K_CROSS_R * y2;
+  float fy2 = -y2 - K_CROSS_R * x2;
+
+  int16_t raw[4] = {
+      (int16_t)fx1,
+      (int16_t)fy1,
+      (int16_t)fx2,
+      (int16_t)fy2
+  };
+
+  static int inited = 0;
+  static int16_t prevVal[4] = {0, 0, 0, 0};
+
+  if (!inited) {
+      for (int i = 0; i < 4; ++i)
+          prevVal[i] = raw[i];
+      inited = 1;
   }
+
+  for (int i = 0; i < 4; ++i) {
+      // DEADZONE 5% (мёртвая зона ±102)
+      if (abs(raw[i]) < STICK_DEADBAND) {
+          prevVal[i] = 0;
+      } else if (abs(raw[i] - prevVal[i]) > STICK_JITTER) {
+          prevVal[i] = raw[i];
+      }
+      s_anaFilt[i] = prevVal[i];
+  }
+
+  #if defined(INTERNAL_MODULE_CRSF)
+    // Записываем в crossfireSharedData для совместимости
+    for (int i = 0; i < 4; ++i) {
+      crossfireSharedData.sticks[i] = prevVal[i];
+    }
+  #endif
 #endif
 }
 
