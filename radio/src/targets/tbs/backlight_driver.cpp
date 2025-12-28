@@ -40,7 +40,9 @@ void backlightDisable(void)
 void backlightEnable(uint8_t level)
 {
   // Простое вкл/выкл - яркость не поддерживается
-  // Всегда выключаем при level = 0, иначе включаем
+  // Level = 0: выключить подсветку
+  // Level > 0: включить подсветку
+  // Level = BACKLIGHT_FORCED_ON (101): принудительное включение
   if (level == 0) {
     GPIO_SetBits(BACKLIGHT_GPIO, BACKLIGHT_GPIO_PIN);   // ВЫКЛ (инвертированная логика)
   } else {
