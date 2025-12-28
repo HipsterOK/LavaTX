@@ -460,10 +460,10 @@ void boardOff()
   ledOff();
 #endif
 
-  // Отключаем питание TPS63060 через PWR_ON (PB12)
-  pwrOff();
+  // Отключаем статусные LED перед выключением питания
+  statusLedAllOff();
 
-  // Полностью выключаем все LED и подсветку
+  // Отключаем все LED и подсветку
   BACKLIGHT_DISABLE();
 #if defined(CHARGING_LEDS)
   ledOff();
@@ -475,6 +475,17 @@ void boardOff()
   GPIO_ResetBits(GPIOE, GPIO_Pin_9);  // LED_PWR_ON PE9
   GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10
   GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11
+
+  // Отключаем питание TPS63060 через PWR_ON (PB12)
+  pwrOff();
+
+  // Задержка для полного отключения TPS63060
+  volatile uint32_t delay = 100000; // ~20мс
+  while (delay--) { __ASM volatile("nop"); }
+
+  // Отключаем watchdog перед входом в режим ожидания
+  // чтобы он не перезапустил систему
+  IWDG->KR = 0x0000; // Disable watchdog
 
   // Очищаем экран
   lcdClear();
