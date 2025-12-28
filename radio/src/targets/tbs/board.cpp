@@ -551,61 +551,65 @@ void boardOff()
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 
-  // Альтернативный подход: глубокий sleep без STOP mode
-  // Отключаем все кроме основных систем
-  TRACE("ENTERING DEEP SLEEP MODE - PWR_OFF COMPLETED\n");
+  // Используем STOP mode с wakeup от кнопки PA3
+  // STOP mode потребляет ~20uA и позволяет wakeup от EXTI
+  TRACE("ENTERING STOP MODE WITH EXTI WAKEUP\n");
 
-  // Дополнительная проверка - PB12 должен быть LOW
-  TRACE("SLEEP: PB12 state = %d (should be 0)\n", GPIO_ReadInputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
-
-  // Отключаем USB для экономии энергии
+  // Отключаем USB
   usbStop();
 
   // Очищаем экран
   lcdClear();
   lcdOff();
 
-  // Убеждаемся что watchdog полностью отключен
-  IWDG->KR = 0x0000; // Double disable
-  TRACE("SLEEP: Watchdog disabled\n");
+  // Полностью отключаем все watchdog
+  IWDG->KR = 0x0000;
+  WWDG->CR = 0x7F;
+  WWDG->CFR = 0x7F;
+  RCC->CSR |= RCC_CSR_RMVF;
 
-  // Простой polling loop с минимальным потреблением
-  TRACE("STARTING POLLING LOOP\n");
-  uint32_t loopCount = 0;
-  while (1) {
-    loopCount++;
-    if (loopCount % 100 == 0) {
-      TRACE("POLLING LOOP count=%lu\n", loopCount);
-    }
+  // Настраиваем wakeup от PA3 через EXTI
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+  SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource3);
 
-    // Проверяем кнопку каждые 10мс
-    if (pwrPressed()) {
-      TRACE("WAKEUP: Power button pressed in sleep mode\n");
+  EXTI_InitStructure.EXTI_Line = EXTI_Line3;
+  EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling; // Active LOW
+  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+  EXTI_Init(&EXTI_InitStructure);
 
-      // Включаем RCC для GPIO
-      RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+  NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
 
-      // Устанавливаем PB12 в HIGH для включения питания
-      GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN); // HIGH для питания
+  // Входим в STOP mode с низким энергопотреблением
+  PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
 
-      // Проверяем что PB12 стал HIGH
-      TRACE("WAKEUP: PB12 set to HIGH, state = %d\n", GPIO_ReadOutputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
+  // После wakeup из STOP mode система продолжает отсюда
+  TRACE("WAKEUP FROM STOP MODE - CONTINUING EXECUTION\n");
 
-      // Включаем питание
-      pwrOn();
+  // Восстанавливаем системные настройки
+  SystemInit();
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-      // Полная перезагрузка для корректной инициализации
-      TRACE("RESTARTING SYSTEM AFTER WAKEUP\n");
-      NVIC_SystemReset();
-    }
+  // Устанавливаем PB12 в HIGH для питания
+  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
-    // Короткая задержка для экономии энергии
-    volatile uint32_t delay = 10000; // ~1ms
-    while (delay--) { __ASM volatile("nop"); }
-  }
+  // Включаем питание и перезапускаемся
+  pwrOn();
+  NVIC_SystemReset();
 }
 
-// Interrupt handler не нужен для polling подхода
+// Interrupt handler для wakeup из STOP mode
+extern "C" void EXTI3_IRQHandler(void)
+{
+  if (EXTI_GetITStatus(EXTI_Line3) != RESET) {
+    EXTI_ClearITPendingBit(EXTI_Line3);
+    // PWR_EnterSTOPMode завершится автоматически
+  }
+}
 
 uint16_t getBatteryVoltage()
 {
