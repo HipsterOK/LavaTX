@@ -19,50 +19,37 @@
 
 void pwrInit()
 {
-  // Включаем GPIOB clock через прямой доступ к RCC
+  // ТЕСТИРУЕМ PB13 вместо PB12 (PB13 работает с MLX датчиком)
+  // Если PB13 переключается - GPIO работает, проблема только с PB12
+  // Если PB13 не переключается - проблема со всем GPIO STM32
+
+  // Включаем GPIOB clock
   RCC_AHB1ENR |= RCC_AHB1ENR_GPIOBEN;
 
-  // Проверяем что clock включился (RCC_AHB1ENR bit 1)
-  volatile uint32_t rcc_check = RCC_AHB1ENR & RCC_AHB1ENR_GPIOBEN;
-  (void)rcc_check; // Для отладки
+  // Настраиваем PB13 как output (он должен работать)
+  GPIOB_MODER &= ~(3 << 26);    // MODER13 = 00 (input)
+  GPIOB_OTYPER &= ~(1 << 13);   // OT13 = 0 (push-pull)
+  GPIOB_PUPDR &= ~(3 << 26);    // PUPDR13 = 00 (no pull)
+  GPIOB_AFR1 &= ~(0xF << 20);   // AFR13 = 0000 (GPIO function)
 
-  // Сбрасываем все настройки PB12
-  GPIOB_MODER &= ~(3 << 24);    // MODER12 = 00 (input)
-  GPIOB_OTYPER &= ~(1 << 12);   // OT12 = 0 (push-pull)
-  GPIOB_OSPEEDR &= ~(3 << 24);  // OSPEEDR12 = 00 (low speed)
-  GPIOB_PUPDR &= ~(3 << 24);    // PUPDR12 = 00 (no pull)
-  GPIOB_AFR1 &= ~(0xF << 16);   // AFR12 = 0000 (GPIO function)
-
-  // Небольшая задержка для стабилизации
+  // Небольшая задержка
   volatile uint32_t i;
   for (i = 0; i < 10000; i++) { __ASM volatile("nop"); }
 
-  // Настраиваем PB12 как output push-pull
-  GPIOB_MODER |= (1 << 24);     // MODER12 = 01 (output)
+  // Настраиваем PB13 как output
+  GPIOB_MODER |= (1 << 26);     // MODER13 = 01 (output)
 
-  // Проверяем настройки
-  volatile uint32_t moder_check = GPIOB_MODER;
-  (void)moder_check; // Для отладки
-
-  // Бесконечный цикл тестирования PB12
+  // Бесконечный цикл тестирования PB13
   // HIGH 0.5 секунды -> LOW 0.5 секунды
   while (1) {
-    // HIGH - установить бит 12 в ODR
-    GPIOB_ODR |= (1 << 12);
-
-    // Проверяем что установилось
-    volatile uint32_t high_check = GPIOB_ODR & (1 << 12);
-    (void)high_check; // Для отладки
+    // HIGH
+    GPIOB_ODR |= (1 << 13);
 
     // Задержка ~0.5 секунды
     for (i = 0; i < 8000000; i++) { __ASM volatile("nop"); }
 
-    // LOW - сбросить бит 12 в ODR
-    GPIOB_ODR &= ~(1 << 12);
-
-    // Проверяем что сбросилось
-    volatile uint32_t low_check = GPIOB_ODR & (1 << 12);
-    (void)low_check; // Для отладки
+    // LOW
+    GPIOB_ODR &= ~(1 << 13);
 
     // Задержка ~0.5 секунды
     for (i = 0; i < 8000000; i++) { __ASM volatile("nop"); }
