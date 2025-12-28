@@ -417,6 +417,11 @@ void boardInit()
   if (skipCharging)
   {
     runPwrOffCharging();
+    // После зарядки проверяем, был ли USB отключен
+    if (!usbPlugged()) {
+      TRACE("USB disconnected during charging, powering off...\n");
+      boardOff(); // Переходим в выключенное состояние
+    }
   }
 
 }
