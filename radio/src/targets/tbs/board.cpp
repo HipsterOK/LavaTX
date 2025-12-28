@@ -264,6 +264,26 @@ static void showBatteryDebugPopup()
 
 void boardInit()
 {
+  // САМЫЙ РАННИЙ ТЕСТ: включаем RCC для GPIOE в самом начале
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+
+  // Немедленная инициализация PE12 для тестирования
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_Init(GPIOE, &GPIO_InitStructure);
+
+  // ВКЛЮЧАЕМ PE12 НЕМЕДЛЕННО - если это сработает, значит GPIOE работает
+  GPIO_SetBits(GPIOE, GPIO_Pin_12);
+
+  // Маленькая задержка для визуального подтверждения
+  volatile uint32_t delay = 100000;
+  while (delay--) { __ASM volatile("nop"); }
+
+  // Теперь продолжаем нормальную инициализацию
   bool skipCharging = false;
 #if defined(RADIO_TANGO)
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
