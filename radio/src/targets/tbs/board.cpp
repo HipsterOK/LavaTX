@@ -565,11 +565,18 @@ void boardOff()
   // Отключаем все LED
   statusLedAllOff();
 
-  // Полностью отключаем все watchdog
-  IWDG->KR = 0x0000;
-  WWDG->CR = 0x7F;
+  // Полностью отключаем все watchdog и reset sources
+  IWDG->KR = 0x0000;  // Independent watchdog
+  WWDG->CR = 0x7F;    // Window watchdog
   WWDG->CFR = 0x7F;
-  RCC->CSR |= RCC_CSR_RMVF;
+  RCC->CSR |= RCC_CSR_RMVF; // Clear reset flags
+
+  // Отключаем brown-out detector если возможно
+  // RCC->CSR &= ~RCC_CSR_BORRSTF; // Не сбрасываем флаг, только проверяем
+
+  // Проверяем причину reset
+  uint32_t resetCause = RCC->CSR & 0xFF000000;
+  TRACE("SHUTDOWN: Reset cause flags = 0x%08X\n", resetCause);
 
   // Отключаем все системные таймеры
   TIM1->CR1 &= ~TIM_CR1_CEN;
@@ -590,26 +597,34 @@ void boardOff()
   // Отключаем SysTick
   SysTick->CTRL = 0;
 
-  // Настраиваем wakeup от PA3 через polling (самый надежный способ)
-  // Проверяем кнопку каждые 100ms без прерываний
-  TRACE("ENTERING POLLING SLEEP LOOP\n");
+  // Настраиваем wakeup от PA3 через polling с debounce
+  TRACE("ENTERING POLLING SLEEP LOOP WITH DEBOUNCE\n");
 
   uint32_t sleepCount = 0;
+  uint8_t buttonPressCount = 0;
   while (1) {
     sleepCount++;
     if (sleepCount % 10 == 0) {  // Каждые 100ms
       if (pwrPressed()) {
-        TRACE("WAKEUP: Button pressed in sleep mode\n");
+        buttonPressCount++;
+        if (buttonPressCount >= 3) {  // Debounce: 3 последовательных чтения
+          TRACE("WAKEUP: Button pressed and debounced (%d counts)\n", buttonPressCount);
 
-        // Восстанавливаем RCC
-        RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+          // Восстанавливаем RCC
+          RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-        // Устанавливаем PB12 в HIGH
-        GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+          // Устанавливаем PB12 в HIGH через pwrOn()
+          pwrOn();
 
-        // Включаем питание и перезапускаемся
-        pwrOn();
-        NVIC_SystemReset();
+          // Небольшая задержка перед reset
+          volatile uint32_t delay = 10000;
+          while (delay--) { __ASM volatile("nop"); }
+
+          // Полная перезагрузка
+          NVIC_SystemReset();
+        }
+      } else {
+        buttonPressCount = 0; // Сбрасываем при отпускании
       }
     }
 

@@ -29,23 +29,43 @@ void pwrInit()
 
 void pwrOn()
 {
-  // PWR_ON управляет EN пином TPS63060
+  // Переконфигурируем PB12 как push-pull output для HIGH уровня
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP; // Push-pull
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
+
+  // Устанавливаем HIGH для включения питания
   GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+
+  TRACE("PWR_ON: PB12 reconfigured as PUSH-PULL OUTPUT, set to HIGH\n");
 }
 
 void pwrOff()
 {
-  // Устанавливаем PB12 в LOW для отключения питания
+  // Для TPS63060DSCR пробуем open-drain output для гарантированного LOW
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD; // Open-drain
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; // Pull-down для LOW
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
+
+  // Устанавливаем LOW через open-drain
   GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
 
-  TRACE("PWR_OFF: PB12 set to LOW via GPIO_ResetBits\n");
+  TRACE("PWR_OFF: PB12 configured as OPEN-DRAIN OUTPUT, set to LOW\n");
 
   // Проверяем уровень на PB12
   TRACE("PWR_OFF: PB12 pin state = %d (should be 0)\n",
         GPIO_ReadOutputDataBit(PWR_ON_GPIO, PWR_ON_GPIO_PIN));
 
-  // Небольшая задержка для стабилизации
-  volatile uint32_t delay = 10000;
+  // Увеличиваем задержку для TPS63060DSCR
+  volatile uint32_t delay = 50000; // ~5ms для shutdown
   while (delay--) { __ASM volatile("nop"); }
 }
 
