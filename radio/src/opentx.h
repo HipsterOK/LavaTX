@@ -105,6 +105,12 @@
   #define CASE_PWM_BACKLIGHT(x)
 #endif
 
+// Для TBS подсветка не имеет регулировки яркости
+#if defined(RADIO_FAMILY_TBS)
+  #undef CASE_PWM_BACKLIGHT
+  #define CASE_PWM_BACKLIGHT(x)
+#endif
+
 #if defined(GPS)
   #define CASE_GPS(x) x,
 #else
