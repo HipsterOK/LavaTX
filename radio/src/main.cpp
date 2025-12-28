@@ -605,7 +605,6 @@ void perMain()
 #endif
 
   checkSpeakerVolume();
-  hall90393_lazy_init();
    if (!usbPlugged()) {
     checkEeprom();
     logsWrite();

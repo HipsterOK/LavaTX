@@ -530,6 +530,28 @@ void boardOff()
   // this function must not return!
 }
 
+// Stub function for RTC battery voltage (TBS doesn't have separate RTC battery)
+uint16_t getRTCBatteryVoltage()
+{
+  return getBatteryVoltage();  // Return main battery voltage
+}
+
+static char g_battDebugMsg[40];
+
+void showBatteryDebugPopup()
+{
+  extern uint8_t g_vbat100mV;
+  uint16_t battVoltage = getBatteryVoltage();
+
+  snprintf(g_battDebugMsg, sizeof(g_battDebugMsg),
+           "RAW:%u ANA:%u VBAT:%u",
+           adcValues[TX_VOLTAGE],
+           anaIn(TX_VOLTAGE),
+           g_vbat100mV);
+
+  POPUP_WARNING(g_battDebugMsg);
+}
+
 uint16_t getBatteryVoltage()
 {
  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
