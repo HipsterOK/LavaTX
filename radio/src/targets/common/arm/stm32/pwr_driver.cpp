@@ -33,42 +33,33 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // PB12 НЕ РАБОТАЕТ - аппаратная проблема!
-  // Пробуем другой GPIO pin - PA0
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+  // ТЕСТ PB12: цикл переключения в pwrInit()
+  // Пользователь хочет видеть PB12 на анализаторе
+  TRACE("PB12_CYCLE_TEST: Starting PB12 toggle cycle in pwrInit()\n");
 
-  // Настраиваем PA0 как output
-  GPIOA->MODER &= ~(GPIO_MODER_MODER0);    // Сбрасываем
-  GPIOA->MODER |= GPIO_MODER_MODER0_0;     // Output
-  GPIOA->OTYPER &= ~(GPIO_OTYPER_OT_0);    // Push-pull
-  GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR0);    // No pull
+  // Цикл переключения PB12 - 10 раз туда-сюда
+  for (int cycle = 0; cycle < 10; cycle++) {
+    // HIGH на 0.5 секунды
+    GPIOB->BSRRL = GPIO_Pin_12;
+    TRACE("PB12_CYCLE_TEST: Cycle %d - HIGH (0.5s)\n", cycle + 1);
 
-  TRACE("PA0_TEST: Testing alternative GPIO pin PA0\n");
-
-  // Переключаем PA0 туда-сюда
-  for (int i = 0; i < 5; i++) {
-    // HIGH
-    GPIOA->BSRRL = GPIO_Pin_0;
-    TRACE("PA0_TEST: Cycle %d - HIGH, ODR=%d IDR=%d\n", i+1,
-          (GPIOA->ODR & GPIO_Pin_0) ? 1 : 0,
-          (GPIOA->IDR & GPIO_Pin_0) ? 1 : 0);
-
-    volatile uint32_t delay = 200000; // 0.2 сек
+    volatile uint32_t delay = 500000; // ~0.5 сек
     while (delay--) { __ASM volatile("nop"); }
 
-    // LOW
-    GPIOA->BSRRH = GPIO_Pin_0;
-    TRACE("PA0_TEST: Cycle %d - LOW, ODR=%d IDR=%d\n", i+1,
-          (GPIOA->ODR & GPIO_Pin_0) ? 1 : 0,
-          (GPIOA->IDR & GPIO_Pin_0) ? 1 : 0);
+    // LOW на 0.5 секунды
+    GPIOB->BSRRH = GPIO_Pin_12;
+    TRACE("PB12_CYCLE_TEST: Cycle %d - LOW (0.5s)\n", cycle + 1);
 
-    delay = 200000; // 0.2 сек
+    delay = 500000; // ~0.5 сек
     while (delay--) { __ASM volatile("nop"); }
   }
 
-  TRACE("PA0_TEST: Check PA0 on logic analyzer!\n");
-  TRACE("PA0_TEST: If PA0 toggles - GPIO works, can use it for power control\n");
-  TRACE("PA0_TEST: If PA0 doesn't toggle - all GPIO broken\n");
+  TRACE("PB12_CYCLE_TEST: Cycle completed - check logic analyzer!\n");
+  TRACE("PB12_CYCLE_TEST: Did PB12 actually toggle HIGH/LOW?\n");
+
+  // Финальное состояние - LOW для теста питания
+  GPIOB->BSRRH = GPIO_Pin_12;
+  TRACE("PB12_CYCLE_TEST: Final state - LOW\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
