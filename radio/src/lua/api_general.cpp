@@ -74,7 +74,7 @@
   #define RADIO_VERSION FLAVOUR
 #endif
 
-#define VERSION_OSNAME "OpenTX"
+#define VERSION_OSNAME "LavaTX"
 
 #define FIND_FIELD_DESC  0x01
 
@@ -91,24 +91,24 @@ Fifo<uint8_t, LUA_FIFO_SIZE> * luaRxFifo = nullptr;
 /*luadoc
 @function getVersion()
 
-Return OpenTX version
+Return LavaTX version
 
-@retval string OpenTX version (ie "2.1.5")
+@retval string LavaTX version (ie "2.1.5")
 
 @retval multiple (available since 2.1.7) returns 6 values:
- * (string) OpenTX version (ie "2.1.5")
+ * (string) LavaTX version (ie "2.1.5")
  * (string) radio type: `x12s`, `x10`, `x9e`, `x9d+`, `x9d` or `x7`.
 If running in simulator the "-simu" is added
  * (number) major version (ie 2 if version 2.1.5)
  * (number) minor version (ie 1 if version 2.1.5)
  * (number) revision number (ie 5 if version 2.1.5)
- * (string) OS name (ie "OpenTX" if OpenTX)
+ * (string) OS name (ie "LavaTX" if LavaTX)
 
 @status current Introduced in 2.0.0, expanded in 2.1.7, radio type strings changed in 2.2.0, OS name added in 2.3.14
 
 ### Example
 
-This example also runs in OpenTX versions where the function returned only one value:
+This example also runs in LavaTX versions where the function returned only one value:
 
 ```lua
 local function run(event)
@@ -131,7 +131,7 @@ radio: taranis-simu
 maj: 2
 minor: 3
 rev: 14
-osname: OpenTX
+osname: LavaTX
 ```
 */
 static int luaGetVersion(lua_State * L)

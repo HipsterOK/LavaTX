@@ -63,7 +63,7 @@
 #elif defined(JUMPER_RELEASE)
   const char vers_stamp[]  = "FW" TAB ": opentx-" FLAVOUR    "\036VERS" TAB ": Factory (" GIT_STR ")" "\036BUILT BY : OpenTX" "\036DATE" TAB ": " DATE " " TIME "\036EEPR" TAB ": " EEPROM_STR;
 #else
-  const char vers_stamp[]  = "FW" TAB ": opentx-" FLAVOUR    "\036VERS" TAB ": " VERSION DISPLAY_VERSION " (" GIT_STR ")" "\036DATE" TAB ": " DATE " " TIME "\036EEPR" TAB ": " EEPROM_STR;
+  const char vers_stamp[]  = "FW" TAB ": LavaTX-" FLAVOUR " (OpenTX fork)" "\036VERS" TAB ": " VERSION DISPLAY_VERSION " (" GIT_STR ")" "\036DATE" TAB ": " DATE " " TIME "\036EEPR" TAB ": " EEPROM_STR;
 #endif
 
 /**
