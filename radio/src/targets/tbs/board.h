@@ -236,7 +236,7 @@ enum EnumSwitches
   SW_SE,
   SW_SF,
 };
-#define IS_3POS(x)                      ((x) == SW_SC)  // Только SC - трехпозиционный
+#define IS_3POS(x)                      ((x) == SW_SA || (x) == SW_SC)
 
 enum EnumSwitchesPositions
 {
