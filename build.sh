@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Скрипт для сборки и заливки прошивки OpenTX для TBS Tango/Mambo
+# Скрипт для сборки и заливки прошивки LavaTX для TBS Tango/Mambo
 # Использует последовательность команд, проверенную на практике
 
 set -e  # Выход при ошибке
@@ -9,7 +9,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
 FIRMWARE_BIN="$BUILD_DIR/firmware.bin"
 
-echo "=== Сборка и заливка OpenTX для TBS ==="
+echo "=== Сборка и заливка LavaTX для TBS ==="
 echo "Проект: $PROJECT_DIR"
 
 # Проверка зависимостей

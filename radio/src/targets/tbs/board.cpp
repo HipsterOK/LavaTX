@@ -249,6 +249,11 @@ static void runPwrOffCharging(void)
       }
     }
   }
+
+  // Если мы здесь, значит USB был отключен - очищаем экран
+  TRACE("USB unplugged, clearing display...\n");
+  lcdClear();
+  lcdOff();
 }
 static char g_battDebugMsg[40];
 
@@ -264,6 +269,17 @@ static void showBatteryDebugPopup()
 
 void boardInit()
 {
+  // Инициализация RCC для GPIO портов
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
+
+  // Инициализация SD_DETECT (PC5) как вход с pull-up
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = SD_DETECT_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(SD_DETECT_GPIO_PORT, &GPIO_InitStructure);
+
+  // Теперь продолжаем нормальную инициализацию
   bool skipCharging = false;
 #if defined(RADIO_TANGO)
   RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_DMA2 |
@@ -315,18 +331,25 @@ void boardInit()
   adcInit();
 #if defined(RADIO_MAMBO)
   backlightInit();
-  BACKLIGHT_ENABLE();
 #endif
-  backlightInit();
   lcdInit(); // delaysInit() must be called before
   delay_ms(5);  // короткая пауза для стабилизации
   lcdClear();
   lcdRefresh();
-  audioInit();
+  audioInit(); // Включаем audio
   init2MhzTimer();
   init5msTimer();
-  crsfInit();
-  usbInit();
+  crsfInit(); // Включаем CRSF с правильными настройками
+  backlightInit(); // Инициализируем подсветку после CRSF
+
+  // Индикация: CRSF инициализирован - включаем LED_NO_LINK (PE11)
+  GPIO_SetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11 - красный
+
+  usbInit(); // Включаем USB
+
+  // Индикация: прошли USB - включаем LED_LOW_BATT (PE8)
+  GPIO_SetBits(GPIOE, GPIO_Pin_8); // LED_LOW_BATT PE8 - красный
+
 #if defined(CHARGING_LEDS)
   ledInit();
 #endif
@@ -378,6 +401,11 @@ void boardInit()
   if (skipCharging)
   {
     runPwrOffCharging();
+    // После зарядки проверяем, был ли USB отключен
+    if (!usbPlugged()) {
+      TRACE("USB disconnected during charging, powering off...\n");
+      boardOff(); // Переходим в выключенное состояние
+    }
   }
 
 }
@@ -413,8 +441,8 @@ void boardOff()
   ledOff();
 #endif
 
-  // ПРОСТОЕ РЕШЕНИЕ: polling PWR_SW без управления питанием
-  // PWR_ON остается HIGH всегда
+  // Отключаем питание TPS63060 через PWR_ON (PB12)
+  pwrOff();
 
   // Полностью выключаем все LED и подсветку
   BACKLIGHT_DISABLE();
@@ -445,6 +473,21 @@ void boardOff()
       TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
     }
 
+    // Проверяем USB подключение для зарядки
+    if (usbPlugged()) {
+      TRACE("USB plugged in power-off mode, entering charging mode...\n");
+
+      // Включаем систему для зарядки
+      pwrOn();
+
+      // Маленькая задержка для стабилизации
+      volatile uint32_t delay = 10000;
+      while (delay--) { __ASM volatile("nop"); }
+
+      // Перезагружаемся в нормальный режим для отображения зарядки
+      NVIC_SystemReset();
+    }
+
     // Проверяем кнопку с debounce
     static int pressCount = 0;
     if (pwrPressed())
@@ -458,12 +501,14 @@ void boardOff()
         // Очищаем дисплей перед перезагрузкой
         lcdClear();
 
-        // Включаем все обратно
+        // Включаем питание TPS63060
         pwrOn();
 
-        // Небольшая задержка
-        volatile uint32_t delay = 10000;
+        // Ждем пока TPS63060 включится (нужно время для стабилизации питания)
+        volatile uint32_t delay = 50000; // увеличенная задержка для TPS63060
         while (delay--) { __ASM volatile("nop"); }
+
+        TRACE("PWR_ON activated, resetting system...\n");
 
         // Перезагружаемся для нормальной работы
         NVIC_SystemReset();

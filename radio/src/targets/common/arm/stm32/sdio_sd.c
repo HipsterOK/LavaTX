@@ -412,11 +412,13 @@ uint8_t SD_Detect(void)
 {
   __IO uint8_t status = SD_PRESENT;
 
-#if 0 // TODO
-  /*!< Check GPIO to detect SD */
-  if (GPIO_ReadInputDataBit(SD_DETECT_GPIO_PORT, SD_DETECT_PIN) != Bit_RESET) {
+#if defined(RADIO_TANGO)
+  /*!< Check GPIO to detect SD for TBS Tango (PC5) */
+  if (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_5) != Bit_RESET) {
     status = SD_NOT_PRESENT;
   }
+#else
+  // Для других плат - всегда присутствует
 #endif
 
   return status;

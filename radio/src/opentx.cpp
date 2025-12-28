@@ -133,6 +133,12 @@ void per10ms()
   if (noHighlightCounter) noHighlightCounter--;
 #endif
 
+#if defined(GUI)
+  if (lightOffCounter) lightOffCounter--;
+  if (flashCounter) flashCounter--;
+  if (noHighlightCounter) noHighlightCounter--;
+#endif
+
   if (trimsCheckTimer) trimsCheckTimer--;
 #if defined(TRAINER_GPIO)
   if (ppmInputValidityTimer) ppmInputValidityTimer--;
