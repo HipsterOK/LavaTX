@@ -12,13 +12,14 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Pin   = PWR_ON_GPIO_PIN;   // PB12
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD; // Open-drain для надежного LOW
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN; // Pull-down для LOW
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // Начинаем с включенного питания для нормальной работы
-  // Логика управления будет в boardOff()
-  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+  // Начинаем с ВЫКЛЮЧЕННОГО питания для теста TPS63060DSCR
+  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+
+  TRACE("PWR_INIT: PB12 initialized as OPEN-DRAIN OUTPUT, set to LOW (power OFF)\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
