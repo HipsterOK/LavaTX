@@ -11,26 +11,21 @@ void backlightInit()
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
   GPIO_Init(BUTTONLIGHT_GPIO, &GPIO_InitStructure);
 
-  GPIO_SetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN); // Начинаем с HIGH (выключено)
+  GPIO_ResetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);
 }
 
 void backlightEnable(uint8_t level)
 {
-  // Для TBS подсветка управляется инвертированной логикой
-  // level > 0 = включить (LOW), level = 0 = выключить (HIGH)
-  if (level > 0) {
-    GPIO_ResetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN); // ВКЛ (LOW)
-  } else {
-    GPIO_SetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);   // ВЫКЛ (HIGH)
-  }
+  (void)level; // пока без PWM
+  GPIO_SetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);
 }
 
 void backlightDisable()
 {
-  GPIO_SetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN); // ВЫКЛ (HIGH)
+  GPIO_ResetBits(BUTTONLIGHT_GPIO, BUTTONLIGHT_GPIO_PIN);
 }
 
 uint8_t isBacklightEnabled()
