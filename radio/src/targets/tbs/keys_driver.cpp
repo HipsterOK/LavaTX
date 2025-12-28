@@ -194,10 +194,10 @@ uint32_t switchState(uint8_t index)
 
   switch (index) {
 #if defined(RADIO_TANGO)
-    ADD_2POS_CASE(A);
-    ADD_3POS_CASE(B, 1);
-    ADD_3POS_CASE(C, 2);
-    ADD_2POS_CASE(D);
+    ADD_2POS_CASE(A);     // SA - 2POS
+    ADD_3POS_CASE(B, 1);  // SB - 2POS (использует H/L пины)
+    ADD_3POS_CASE(C, 2);  // SC - 3POS
+    ADD_2POS_CASE(D);     // SD - 2POS
 #elif defined(RADIO_MAMBO)
     ADD_3POS_CASE(A);
     ADD_3POS_CASE(B);
