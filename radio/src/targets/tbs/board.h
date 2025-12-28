@@ -599,6 +599,10 @@ void extmoduleSendInvertedByte(uint8_t byte);
 #if defined(RADIO_LAVA_ONE)
   #define IS_CHARGING_STATE()         (usbPlugged() && GPIO_ReadInputDataBit( CHARGER_STATE_GPIO, CHARGER_STATE_GPIO_PIN ) == Bit_RESET)
   #define IS_CHARGING_FAULT()         (usbPlugged() && GPIO_ReadInputDataBit( CHARGER_FAULT_GPIO, CHARGER_FAULT_GPIO_PIN ) == Bit_RESET)
+#elif defined(RADIO_TANGO)
+  // Для TBS Tango используем USB VBUS (PA9) для определения зарядки
+  #define IS_CHARGING_STATE()         (GPIO_ReadInputDataBit( GPIOA, GPIO_Pin_9 ) == Bit_SET)
+  #define IS_CHARGING_FAULT()         (0)
 #else
   #define IS_CHARGING_STATE()         (GPIO_ReadInputDataBit( CHARGER_STATE_GPIO, CHARGER_STATE_GPIO_PIN ) == Bit_RESET)
   #define IS_CHARGING_FAULT()         (0)

@@ -23,11 +23,22 @@
 void usbChargerInit(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
+
+#if defined(RADIO_TANGO)
+  // Для TBS Tango инициализируем USB VBUS (PA9) для определения зарядки
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9; // PA9 - USB VBUS
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; // pull-down для надежности
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+#else
+  // Для других плат используем стандартные пины зарядки
   GPIO_InitStructure.GPIO_Pin = CHARGER_STATE_GPIO_PIN | CHARGER_FAULT_GPIO_PIN;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
   GPIO_Init(CHARGER_STATE_GPIO, &GPIO_InitStructure);
+#endif
 }
 
 bool usbChargerLed()
