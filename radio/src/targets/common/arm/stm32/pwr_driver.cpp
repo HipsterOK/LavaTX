@@ -33,13 +33,14 @@ void pwrInit()
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
 
-  // ТЕСТ TPS63060DSCR: устанавливаем PB12 в LOW навсегда
-  // Если система не запустится - значит PB12 управляет TPS63060DSCR
-  // Если система запустится - значит PB12 не управляет питанием
-  GPIO_ResetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
-  TRACE("PWR_INIT TEST: PB12 set to LOW permanently - TPS63060DSCR should shut down\n");
+  // ТЕСТ PB13 (MOSFET): устанавливаем в LOW навсегда для проверки
+  // Если PB13 управляет питанием через MOSFET - система не запустится
+  GPIO_ResetBits(GPIOB, GPIO_Pin_13);
+  TRACE("PWR_INIT TEST: PB13 (MOSFET) set to LOW permanently - testing power control\n");
 
-  // Не возвращаем HIGH - оставляем LOW для теста
+  // PB12 оставляем в HIGH для TPS63060DSCR (если он подключен)
+  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN);
+  TRACE("PWR_INIT: PB12 set to HIGH for TPS63060DSCR (if connected)\n");
 
   // --- PWR_SWITCH (PA3) — кнопка включения ---
   GPIO_InitStructure.GPIO_Pin   = PWR_SWITCH_GPIO_PIN; // PA3
