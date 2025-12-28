@@ -333,7 +333,7 @@ void boardInit()
   backlightInit();
 #endif
   backlightInit();
-  // Не включаем подсветку здесь, чтобы не мешать системному управлению
+  BACKLIGHT_ENABLE(); // Включаем подсветку при инициализации
   lcdInit(); // delaysInit() must be called before
   delay_ms(5);  // короткая пауза для стабилизации
   lcdClear();
@@ -532,16 +532,18 @@ void boardOff()
 
 uint16_t getBatteryVoltage()
 {
-  // Используем сырое значение ADC для более точного измерения
-  int32_t adc_value = adcValues[TX_VOLTAGE];
+ int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
+  float batt_scale = 0;
+#if defined(RADIO_TANGO)
+  if (IS_PCBREV_01())
+    batt_scale = BATT_SCALE;
+  else 
+    batt_scale = BATT_SCALE2;
+#elif defined(RADIO_MAMBO)
+  batt_scale = BATT_SCALE;
+#endif
 
-  // Калибровка напряжения батареи для TBS Tango
-  // adc_value = ADC значение (0-4095)
-  // Формула: напряжение_10mv = (adc * 420) / 4095 + калибровка
-  // 420 = 4.2V * 100 (максимальное напряжение Li-Ion в 10mV единицах)
-  int32_t instant_vbat = (adc_value * 420) / 4095;
-  instant_vbat += g_eeGeneral.txVoltageCalibration;
-
+  instant_vbat = instant_vbat / batt_scale + g_eeGeneral.txVoltageCalibration;
   return (uint16_t)instant_vbat;
 }
 

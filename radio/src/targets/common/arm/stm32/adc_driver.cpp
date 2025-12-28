@@ -265,7 +265,6 @@ static inline int16_t applyDeadzone(int16_t val) {
 #define K_CROSS_L      0.08f    // Подбирай под свой магнит
 #define K_CROSS_R      0.08f
 
-#if defined(RADIO_CALIBRATION_HALL)
 void adcRead()
 {
     hall90393_lazy_init();
@@ -304,12 +303,9 @@ void adcRead()
             prevVal[i] = raw[i];
         }
         s_anaFilt[i] = prevVal[i];
-#if defined(RADIO_FAMILY_TBS)
         crossfireSharedData.sticks[i] = prevVal[i];
-#endif
     }
 }
-#endif
 
 #if defined(PCBX10)
 uint16_t getRTCBatteryVoltage()
