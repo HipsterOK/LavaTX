@@ -488,14 +488,16 @@ void boardOff()
   volatile uint32_t delay = 100000; // ~20мс
   while (delay--) { __ASM volatile("nop"); }
 
-  // Отключаем watchdog полностью
+  // Отключаем ВСЕ watchdog'и
+  // Independent watchdog
   IWDG->KR = 0x0000; // Disable IWDG
 
-  // Отключаем window watchdog если есть
-  if (RCC->CSR & RCC_CSR_WWDGRSTF) {
-    // Clear WWDG reset flag
-    RCC->CSR |= RCC_CSR_RMVF;
-  }
+  // Window watchdog
+  WWDG->CR = 0x7F; // Reset WWDG
+  WWDG->CFR = 0x7F; // Disable WWDG
+
+  // Clear reset flags
+  RCC->CSR |= RCC_CSR_RMVF;
 
   // Отключаем SysTick
   SysTick->CTRL = 0;
@@ -523,79 +525,68 @@ void boardOff()
   // Отключаем USB если включен
   usbStop();
 
-  // Добавляем debug информацию перед входом в цикл
-  TRACE("ENTERING POWER OFF LOOP - ALL TIMERS DISABLED\n");
+  // Входим в STOP mode вместо полного отключения питания
+  // STOP mode потребляет ~20uA, но система не перезапускается
+  TRACE("ENTERING STOP MODE - MINIMUM POWER CONSUMPTION\n");
 
-  // Очищаем экран
+  // Очищаем экран перед sleep
   lcdClear();
   lcdOff();
 
-  // Бесконечный цикл ожидания кнопки
-  // Система остается активной, но в минимальном режиме
-  TRACE("ENTERING POWER OFF POLLING MODE\n");
-  static int pollCount = 0;
+  // Настраиваем wakeup от кнопки PA3
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+  SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource3);
 
-  while (1)
-  {
-    pollCount++;
-    if (pollCount % 100 == 0) {
-      TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
-    }
+  EXTI_InitTypeDef EXTI_InitStructure;
+  EXTI_InitStructure.EXTI_Line = EXTI_Line3;
+  EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling; // PA3 active LOW
+  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+  EXTI_Init(&EXTI_InitStructure);
 
-    // Проверяем USB подключение для зарядки
-    if (usbPlugged()) {
-      TRACE("USB plugged in power-off mode, entering charging mode...\n");
+  NVIC_InitTypeDef NVIC_InitStructure;
+  NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
 
-      // Включаем систему для зарядки
-      pwrOn();
+  // Входим в STOP mode
+  PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
 
-      // Маленькая задержка для стабилизации
-      volatile uint32_t delay = 10000;
-      while (delay--) { __ASM volatile("nop"); }
+  // После wakeup из STOP mode система продолжает выполнение отсюда
+  TRACE("WAKEUP FROM STOP MODE\n");
 
-      // Перезагружаемся в нормальный режим для отображения зарядки
-      NVIC_SystemReset();
-    }
+  // Восстанавливаем системные настройки после wakeup
+  SystemInit();
 
-    // Проверяем кнопку с debounce
-    static int pressCount = 0;
-    if (pwrPressed())
-    {
-      pressCount++;
-      if (pressCount > 5) {  // debounce - 5 последовательных чтений
-        // Кнопка нажата - просыпаемся
-        TRACE("WAKEUP: Power button pressed! (poll: %d, debounce: %d)\n", pollCount, pressCount);
-        pressCount = 0;
+  // Включаем RCC для GPIO
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-        // Очищаем дисплей перед перезагрузкой
-        lcdClear();
+  // Переконфигурируем PB12 обратно как output HIGH
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = PWR_ON_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_Init(PWR_ON_GPIO, &GPIO_InitStructure);
+  GPIO_SetBits(PWR_ON_GPIO, PWR_ON_GPIO_PIN); // HIGH для питания
 
-        // Включаем питание TPS63060
-        pwrOn();
+  // Включаем питание
+  pwrOn();
 
-        // Ждем пока TPS63060 включится (нужно время для стабилизации питания)
-        volatile uint32_t delay = 50000; // увеличенная задержка для TPS63060
-        while (delay--) { __ASM volatile("nop"); }
+  // Возвращаемся в boardInit для нормальной работы
+  return;
+}
 
-        TRACE("PWR_ON activated, resetting system...\n");
-
-        // Перезагружаемся для нормальной работы
-        NVIC_SystemReset();
-      }
-    } else {
-      // Кнопка не нажата - сбрасываем счетчик debounce
-      pressCount = 0;
-    }
-
-    // Короткая пауза
-    volatile uint32_t delay = 1000;
-    while (delay--) { __ASM volatile("nop"); }
-
-    // Сбрасываем watchdog
-    WDG_RESET();
+// Interrupt handler для wakeup из STOP mode
+extern "C" void EXTI3_IRQHandler(void)
+{
+  if (EXTI_GetITStatus(EXTI_Line3) != RESET) {
+    EXTI_ClearITPendingBit(EXTI_Line3);
+    // Просто очищаем флаг - PWR_EnterSTOPMode завершится автоматически
   }
-
-  // this function must not return!
 }
 
 uint16_t getBatteryVoltage()
