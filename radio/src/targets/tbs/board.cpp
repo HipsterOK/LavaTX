@@ -332,7 +332,6 @@ void boardInit()
 #if defined(RADIO_MAMBO)
   backlightInit();
 #endif
-  backlightInit();
   lcdInit(); // delaysInit() must be called before
   delay_ms(5);  // короткая пауза для стабилизации
   lcdClear();
@@ -341,6 +340,7 @@ void boardInit()
   init2MhzTimer();
   init5msTimer();
   crsfInit(); // Включаем CRSF с правильными настройками
+  backlightInit(); // Инициализируем подсветку после CRSF
 
   // Индикация: CRSF инициализирован - включаем LED_NO_LINK (PE11)
   GPIO_SetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11 - красный
