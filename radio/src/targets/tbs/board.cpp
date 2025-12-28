@@ -479,6 +479,21 @@ void boardOff()
       TRACE("POLLING PWR_SW... (count: %d)\n", pollCount);
     }
 
+    // Проверяем USB подключение для зарядки
+    if (usbPlugged()) {
+      TRACE("USB plugged in power-off mode, entering charging mode...\n");
+
+      // Включаем систему для зарядки
+      pwrOn();
+
+      // Маленькая задержка для стабилизации
+      volatile uint32_t delay = 10000;
+      while (delay--) { __ASM volatile("nop"); }
+
+      // Перезагружаемся в нормальный режим для отображения зарядки
+      NVIC_SystemReset();
+    }
+
     // Проверяем кнопку с debounce
     static int pressCount = 0;
     if (pwrPressed())
