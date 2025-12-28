@@ -133,6 +133,11 @@ void per10ms()
   if (noHighlightCounter) noHighlightCounter--;
 #endif
 
+// Для TBS подсветка должна выключаться по таймауту
+#if defined(RADIO_FAMILY_TBS)
+  if (lightOffCounter) lightOffCounter--;
+#endif
+
   if (trimsCheckTimer) trimsCheckTimer--;
 #if defined(TRAINER_GPIO)
   if (ppmInputValidityTimer) ppmInputValidityTimer--;
