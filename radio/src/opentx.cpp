@@ -2160,6 +2160,9 @@ void opentxInit()
   audioQueue.start();
   BACKLIGHT_ENABLE();
 
+  // Инициализируем напряжение батареи
+  g_vbat100mV = (getBatteryVoltage() + 5) / 10;
+
 #if defined(PCBSKY9X)
   // Set ADC gains here
   setSticksGain(g_eeGeneral.sticksGain);

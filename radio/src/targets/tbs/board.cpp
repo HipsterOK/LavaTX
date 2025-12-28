@@ -402,6 +402,9 @@ void boardInit()
   if (skipCharging)
   {
     runPwrOffCharging();
+    // После зарядки обновляем напряжение батареи
+    extern uint8_t g_vbat100mV;
+    g_vbat100mV = (getBatteryVoltage() + 5) / 10;
     // После зарядки проверяем, был ли USB отключен
     if (!usbPlugged()) {
       TRACE("USB disconnected during charging, powering off...\n");
