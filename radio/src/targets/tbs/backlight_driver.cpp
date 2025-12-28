@@ -4,7 +4,7 @@
 
 void backlightInit()
 {
-  // RCC уже включен в boardInit()
+  RCC_AHB1PeriphClockCmd(BUTTONLIGHT_RCC_AHB1Periph, ENABLE);
 
   GPIO_InitTypeDef GPIO_InitStructure;
   GPIO_InitStructure.GPIO_Pin   = BUTTONLIGHT_GPIO_PIN;

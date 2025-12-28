@@ -269,30 +269,15 @@ static void showBatteryDebugPopup()
 
 void boardInit()
 {
-  // САМЫЙ РАННИЙ ТЕСТ: включаем RCC для GPIOE в самом начале
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
-
-  // Немедленная инициализация PE12 для тестирования
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
-  GPIO_Init(GPIOE, &GPIO_InitStructure);
-
-  // ВКЛЮЧАЕМ PE12 НЕМЕДЛЕННО - если это сработает, значит GPIOE работает
-  GPIO_SetBits(GPIOE, GPIO_Pin_12);
+  // Инициализация RCC для GPIO портов
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
 
   // Инициализация SD_DETECT (PC5) как вход с pull-up
+  GPIO_InitTypeDef GPIO_InitStructure;
   GPIO_InitStructure.GPIO_Pin = SD_DETECT_PIN;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
   GPIO_Init(SD_DETECT_GPIO_PORT, &GPIO_InitStructure);
-
-  // Маленькая задержка для визуального подтверждения
-  volatile uint32_t delay = 100000;
-  while (delay--) { __ASM volatile("nop"); }
 
   // Теперь продолжаем нормальную инициализацию
   bool skipCharging = false;
@@ -348,7 +333,7 @@ void boardInit()
   backlightInit();
 #endif
   backlightInit();
-  BACKLIGHT_ENABLE(); // Включаем подсветку при старте
+  // Не включаем подсветку здесь, чтобы не мешать системному управлению
   lcdInit(); // delaysInit() must be called before
   delay_ms(5);  // короткая пауза для стабилизации
   lcdClear();
