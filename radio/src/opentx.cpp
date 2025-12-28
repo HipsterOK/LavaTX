@@ -136,6 +136,13 @@ void per10ms()
 // Для TBS подсветка должна выключаться по таймауту
 #if defined(RADIO_FAMILY_TBS)
   if (lightOffCounter) lightOffCounter--;
+
+  // Принудительное выключение подсветки через 10 секунд для тестирования
+  static uint32_t testCounter = 0;
+  testCounter++;
+  if (testCounter > 1000) { // 10 секунд (1000 * 10мс)
+    backlightDisable();
+  }
 #endif
 
   if (trimsCheckTimer) trimsCheckTimer--;
@@ -824,7 +831,12 @@ void checkBacklight()
         BACKLIGHT_ENABLE();
       }
       else {
+        // Для TBS принудительно выключаем подсветку
+        #if defined(RADIO_FAMILY_TBS)
+        backlightDisable();
+        #else
         BACKLIGHT_DISABLE();
+        #endif
       }
     }
   }
