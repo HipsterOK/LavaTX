@@ -88,7 +88,9 @@ enum {
   CASE_BACKLIGHT(ITEM_RADIO_SETUP_BACKLIGHT_LABEL)
   CASE_BACKLIGHT(ITEM_RADIO_SETUP_BACKLIGHT_MODE)
   CASE_BACKLIGHT(ITEM_RADIO_SETUP_BACKLIGHT_DELAY)
+#if !defined(RADIO_FAMILY_TBS)
   CASE_BACKLIGHT(ITEM_RADIO_SETUP_BRIGHTNESS)
+#endif
   CASE_PWM_BACKLIGHT(ITEM_RADIO_SETUP_BACKLIGHT_BRIGHTNESS_OFF)
   CASE_PWM_BACKLIGHT(ITEM_RADIO_SETUP_BACKLIGHT_BRIGHTNESS_ON)
   CASE_BACKLIGHT(ITEM_RADIO_SETUP_FLASH_BEEP)
@@ -169,7 +171,9 @@ void menuRadioSetup(event_t event)
     CASE_BACKLIGHT(LABEL(BACKLIGHT))
     CASE_BACKLIGHT(0)
     CASE_BACKLIGHT(0)
+#if !defined(RADIO_FAMILY_TBS)
     CASE_BACKLIGHT(0)
+#endif
     CASE_PWM_BACKLIGHT(0)
     CASE_PWM_BACKLIGHT(0)
     CASE_BACKLIGHT(0)
@@ -497,6 +501,7 @@ void menuRadioSetup(event_t event)
         if (attr) CHECK_INCDEC_GENVAR(event, g_eeGeneral.lightAutoOff, 0, 600/5);
         break;
 
+#if !defined(RADIO_FAMILY_TBS)
       case ITEM_RADIO_SETUP_BRIGHTNESS:
         lcdDrawTextAlignedLeft(y, STR_BRIGHTNESS);
         lcdDrawNumber(RADIO_SETUP_2ND_COLUMN, y, 100-g_eeGeneral.backlightBright, attr|LEFT) ;
@@ -506,6 +511,7 @@ void menuRadioSetup(event_t event)
           g_eeGeneral.backlightBright = 100 - b;
         }
         break;
+#endif
 #endif
 
 #if defined(PWM_BACKLIGHT)
