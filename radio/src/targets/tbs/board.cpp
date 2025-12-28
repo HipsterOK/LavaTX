@@ -342,11 +342,19 @@ void boardInit()
   delay_ms(5);  // короткая пауза для стабилизации
   lcdClear();
   lcdRefresh();
-  audioInit();
+  // audioInit(); // Временно отключено для диагностики
   init2MhzTimer();
   init5msTimer();
-  crsfInit();
-  usbInit();
+  // crsfInit(); // Временно отключено для диагностики
+
+  // Индикация: прошли CRSF - включаем LED_NO_LINK (PE11) если CRSF отключен
+  GPIO_SetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11 - красный
+
+  // usbInit(); // Временно отключено для диагностики
+
+  // Индикация: прошли USB - включаем LED_LOW_BATT (PE8) если USB отключен
+  GPIO_SetBits(GPIOE, GPIO_Pin_8); // LED_LOW_BATT PE8 - красный
+
 #if defined(CHARGING_LEDS)
   ledInit();
 #endif
