@@ -19,40 +19,40 @@
 
 void pwrInit()
 {
-  // ТЕСТИРУЕМ PB13 вместо PB12 (PB13 работает с MLX датчиком)
-  // Если PB13 переключается - GPIO работает, проблема только с PB12
-  // Если PB13 не переключается - проблема со всем GPIO STM32
+  // СНОВА ТЕСТИРУЕМ PB12 - пользователь перепутал пины на плате
+  // Проверяем правильный физический пин PB12
 
   // Включаем GPIOB clock
   RCC_AHB1ENR |= RCC_AHB1ENR_GPIOBEN;
 
-  // Настраиваем PB13 как output (он должен работать)
-  GPIOB_MODER &= ~(3 << 26);    // MODER13 = 00 (input)
-  GPIOB_OTYPER &= ~(1 << 13);   // OT13 = 0 (push-pull)
-  GPIOB_PUPDR &= ~(3 << 26);    // PUPDR13 = 00 (no pull)
-  GPIOB_AFR1 &= ~(0xF << 20);   // AFR13 = 0000 (GPIO function)
+  // Полностью сбрасываем PB12
+  GPIOB_MODER &= ~(3 << 24);    // MODER12 = 00 (input)
+  GPIOB_OTYPER &= ~(1 << 12);   // OT12 = 0 (push-pull)
+  GPIOB_OSPEEDR &= ~(3 << 24);  // OSPEEDR12 = 00 (low speed)
+  GPIOB_PUPDR &= ~(3 << 24);    // PUPDR12 = 00 (no pull)
+  GPIOB_AFR1 &= ~(0xF << 16);   // AFR12 = 0000 (GPIO function)
 
   // Небольшая задержка
   volatile uint32_t i;
   for (i = 0; i < 10000; i++) { __ASM volatile("nop"); }
 
-  // Настраиваем PB13 как output
-  GPIOB_MODER |= (1 << 26);     // MODER13 = 01 (output)
+  // Настраиваем PB12 как output push-pull
+  GPIOB_MODER |= (1 << 24);     // MODER12 = 01 (output)
 
-  // Бесконечный цикл тестирования PB13
-  // HIGH 0.5 секунды -> LOW 0.5 секунды
+  // Бесконечный цикл тестирования PB12
+  // HIGH 1 секунда -> LOW 1 секунда (дольше для удобства проверки)
   while (1) {
-    // HIGH
-    GPIOB_ODR |= (1 << 13);
+    // HIGH - 1 секунда
+    GPIOB_ODR |= (1 << 12);
 
-    // Задержка ~0.5 секунды
-    for (i = 0; i < 8000000; i++) { __ASM volatile("nop"); }
+    // Задержка ~1 секунда
+    for (i = 0; i < 16000000; i++) { __ASM volatile("nop"); }
 
-    // LOW
-    GPIOB_ODR &= ~(1 << 13);
+    // LOW - 1 секунда
+    GPIOB_ODR &= ~(1 << 12);
 
-    // Задержка ~0.5 секунды
-    for (i = 0; i < 8000000; i++) { __ASM volatile("nop"); }
+    // Задержка ~1 секунда
+    for (i = 0; i < 16000000; i++) { __ASM volatile("nop"); }
   }
 }
 
