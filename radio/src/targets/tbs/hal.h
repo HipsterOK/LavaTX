@@ -574,4 +574,13 @@
 // S.Port update connector
 #define SPORT_MAX_BAUDRATE 400000
 
+// Aux serial functions
+void auxSerialSetup(unsigned int baudrate, bool dma, uint16_t length = USART_WordLength_8b, uint16_t parity = USART_Parity_No, uint16_t stop = USART_StopBits_1);
+
+// Stub functions for hall sensors (TBS doesn't use them)
+extern "C" {
+void hall90393_lazy_init(void);
+void hall90393_read_xyz(int, int16_t*, int16_t*, int16_t*);
+}
+
 #endif // _HAL_H_

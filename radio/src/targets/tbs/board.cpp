@@ -257,14 +257,24 @@ static void runPwrOffCharging(void)
 }
 static char g_battDebugMsg[40];
 
-static void showBatteryDebugPopup()
+void showBatteryDebugPopup()
 {
+  extern uint8_t g_vbat100mV;
+  uint16_t battVoltage = getBatteryVoltage();
+
   snprintf(g_battDebugMsg, sizeof(g_battDebugMsg),
-           "RAW=%u ANA=%u",
+           "RAW:%u ANA:%u VBAT:%u",
            adcValues[TX_VOLTAGE],
-           anaIn(TX_VOLTAGE));  // anaIn = отфильтрованное значение (фильтр)
+           anaIn(TX_VOLTAGE),
+           g_vbat100mV);
 
   POPUP_WARNING(g_battDebugMsg);
+}
+
+// Stub functions for hall sensors (TBS doesn't use them)
+extern "C" {
+void hall90393_lazy_init(void) {}
+void hall90393_read_xyz(int, int16_t*, int16_t*, int16_t*) {}
 }
 
 void boardInit()

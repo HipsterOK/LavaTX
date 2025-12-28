@@ -1368,10 +1368,15 @@ void getADC()
 
   // Отладка для TBS
 #if defined(RADIO_FAMILY_TBS)
-  static uint32_t lastTrace = 0;
-  if (get_tmr10ms() - lastTrace > 1000) {  // каждую секунду
+  static uint32_t lastDebug = 0;
+  if (get_tmr10ms() - lastDebug > 2000) {  // каждые 2 секунды
     TRACE("getADC: adcValues[TX_VOLTAGE=%d]=%d, adcValues[TX_RTC_VOLTAGE=%d]=%d", TX_VOLTAGE, adcValues[TX_VOLTAGE], TX_RTC_VOLTAGE, adcValues[TX_RTC_VOLTAGE]);
-    lastTrace = get_tmr10ms();
+
+    // Показываем popup с отладочной информацией
+    extern void showBatteryDebugPopup();
+    showBatteryDebugPopup();
+
+    lastDebug = get_tmr10ms();
   }
 #endif
 

@@ -1806,7 +1806,9 @@ static int luaSetSerialBaudrate(lua_State * L)
 #if defined(AUX_SERIAL)
   if (auxSerialMode == UART_MODE_LUA) {
     auxSerialStop();
+#if !defined(RADIO_FAMILY_TBS)
     auxSerialSetup(baudrate, false);
+#endif
   }
 #endif
 #if defined(AUX2_SERIAL)

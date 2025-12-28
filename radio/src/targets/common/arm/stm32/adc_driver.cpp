@@ -272,6 +272,10 @@ static inline int16_t applyDeadzone(int16_t val) {
 
 void adcRead()
 {
+#if defined(RADIO_FAMILY_TBS)
+    // Для TBS adcRead() не делает ничего, АЦП запускается в getADC()
+    return;
+#else
     hall90393_lazy_init();
 
     int16_t x1, y1, z1, x2, y2, z2;
@@ -308,8 +312,8 @@ void adcRead()
             prevVal[i] = raw[i];
         }
         s_anaFilt[i] = prevVal[i];
-        crossfireSharedData.sticks[i] = prevVal[i];
     }
+#endif
 }
 
 #if defined(PCBX10)

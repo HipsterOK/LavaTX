@@ -607,7 +607,9 @@ void perMain()
 #endif
 
   checkSpeakerVolume();
+#if !defined(RADIO_FAMILY_TBS)
   hall90393_lazy_init();
+#endif
    if (!usbPlugged()) {
     checkEeprom();
     logsWrite();
