@@ -269,22 +269,29 @@ static void showBatteryDebugPopup()
 
 void boardInit()
 {
+  TRACE("boardInit: START\n");
+
   // === ИНИЦИАЛИЗАЦИЯ ПИТАНИЯ ===
   // Сначала инициализируем минимум для работы с питанием
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+  TRACE("boardInit: GPIO clocks enabled\n");
 
   // Инициализация питания (PWR_ON начинает с LOW)
   pwrInit();
+  TRACE("boardInit: Power initialized\n");
 
   // Включаем питание всегда - логика включения/выключения в boardOff()
   pwrOn();
+  TRACE("boardInit: Power ON\n");
 
   // Небольшая задержка для стабилизации питания TPS63060
   volatile uint32_t delay = 50000;
   while (delay--) { __ASM volatile("nop"); }
+  TRACE("boardInit: Power delay done\n");
 
   // Теперь продолжаем нормальную инициализацию RCC
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
+  TRACE("boardInit: All GPIO clocks enabled\n");
 
   // Инициализация SD_DETECT (PC5) как вход с pull-up
   GPIO_InitTypeDef GPIO_InitStructure;
@@ -348,9 +355,14 @@ void boardInit()
 #endif
   lcdInit(); // delaysInit() must be called before
   delay_ms(5);  // короткая пауза для стабилизации
+  TRACE("boardInit: Delay done\n");
+
   lcdClear();
   lcdRefresh();
+  TRACE("boardInit: LCD initialized\n");
+
   audioInit(); // Включаем audio
+  TRACE("boardInit: Audio initialized\n");
   init2MhzTimer();
   init5msTimer();
   backlightInit(); // Инициализируем подсветку
@@ -365,6 +377,7 @@ void boardInit()
   statusLedNoLinkOn();
 
   usbInit(); // Включаем USB
+  TRACE("boardInit: USB initialized\n");
 
   // Полностью отключаем всю Crossfire функциональность для тестирования
   // memset(&crossfireSharedData, 0, sizeof(CrossfireSharedData));
@@ -394,8 +407,11 @@ void boardInit()
       ledPowerOn();   // зелёный LED: Пульт включён
   #endif
   __enable_irq();
+  TRACE("boardInit: Interrupts enabled\n");
 
-  hardwareOptions.pcbrev = crsfGetHWID() & ~HW_ID_MASK;
+  // hardwareOptions.pcbrev = crsfGetHWID() & ~HW_ID_MASK; // CRSF отключен
+  hardwareOptions.pcbrev = 0; // Значение по умолчанию
+  TRACE("boardInit: Hardware options set\n");
 
 #if defined(RTCLOCK) && !defined(COPROCESSOR)
   rtcInit(); // RTC must be initialized before rambackupRestore() is called
