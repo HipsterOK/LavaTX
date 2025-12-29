@@ -269,29 +269,22 @@ static void showBatteryDebugPopup()
 
 void boardInit()
 {
-  TRACE("boardInit: START\n");
-
   // === ИНИЦИАЛИЗАЦИЯ ПИТАНИЯ ===
   // Сначала инициализируем минимум для работы с питанием
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
-  TRACE("boardInit: GPIO clocks enabled\n");
 
   // Инициализация питания (PWR_ON начинает с LOW)
   pwrInit();
-  TRACE("boardInit: Power initialized\n");
 
   // Включаем питание всегда - логика включения/выключения в boardOff()
   pwrOn();
-  TRACE("boardInit: Power ON\n");
 
   // Небольшая задержка для стабилизации питания TPS63060
   volatile uint32_t delay = 50000;
   while (delay--) { __ASM volatile("nop"); }
-  TRACE("boardInit: Power delay done\n");
 
   // Теперь продолжаем нормальную инициализацию RCC
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
-  TRACE("boardInit: All GPIO clocks enabled\n");
 
   // Инициализация SD_DETECT (PC5) как вход с pull-up
   GPIO_InitTypeDef GPIO_InitStructure;
@@ -355,46 +348,23 @@ void boardInit()
 #endif
   lcdInit(); // delaysInit() must be called before
   delay_ms(5);  // короткая пауза для стабилизации
-  TRACE("boardInit: Delay done\n");
-
   lcdClear();
   lcdRefresh();
-  TRACE("boardInit: LCD initialized\n");
-
   audioInit(); // Включаем audio
-  TRACE("boardInit: Audio initialized\n");
   init2MhzTimer();
   init5msTimer();
-  backlightInit(); // Инициализируем подсветку
-
-  // Откладываем CRSF инициализацию до конца, чтобы избежать конфликтов
-  // crsfInit(); // Включаем CRSF с правильными настройками
+  crsfInit(); // Включаем CRSF с правильными настройками
+  backlightInit(); // Инициализируем подсветку после CRSF
 
   // Инициализация статусных LED
   statusLedInit();
 
-  // Индикация: основные системы инициализированы - включаем LED_NO_LINK (красный, связи нет)
+  // Индикация: CRSF инициализирован - включаем LED_NO_LINK (красный, связи нет)
   statusLedNoLinkOn();
 
   usbInit(); // Включаем USB
-  TRACE("boardInit: USB initialized\n");
 
-  // Полностью отключаем всю Crossfire функциональность для тестирования
-  // memset(&crossfireSharedData, 0, sizeof(CrossfireSharedData));
-  // crossfireSharedData.rtosApiVersion = RTOS_API_VERSION;
-  // // Инициализируем стики значениями по умолчанию (центр)
-  // for (int i = 0; i < 4; i++) {
-  //   crossfireSharedData.sticks[i] = 512;  // Центральное положение
-  // }
-  // trampolineInit();
-
-  // Задержка для стабилизации системы
-  delay_ms(10);
-
-  // Пытаемся инициализировать CRSF, но если не получится - продолжаем без него
-  // crsfInit(); // Отключаем CRSF инициализацию из-за конфликтов
-
-  // Индикация: прошли USB и CRSF - включаем LED_PWR_ON (зеленый, пульт включен)
+  // Индикация: прошли USB - включаем LED_PWR_ON (зеленый, пульт включен)
   statusLedPwrOnOn();
 
 #if defined(CHARGING_LEDS)
@@ -407,11 +377,8 @@ void boardInit()
       ledPowerOn();   // зелёный LED: Пульт включён
   #endif
   __enable_irq();
-  TRACE("boardInit: Interrupts enabled\n");
 
-  // hardwareOptions.pcbrev = crsfGetHWID() & ~HW_ID_MASK; // CRSF отключен
-  hardwareOptions.pcbrev = 0; // Значение по умолчанию
-  TRACE("boardInit: Hardware options set\n");
+  hardwareOptions.pcbrev = crsfGetHWID() & ~HW_ID_MASK;
 
 #if defined(RTCLOCK) && !defined(COPROCESSOR)
   rtcInit(); // RTC must be initialized before rambackupRestore() is called
@@ -537,19 +504,19 @@ void boardOff()
   BACKLIGHT_DISABLE();
 
   // Отключаем периферию
-          // crossfirePowerOff();
-          // crossfireTasksStop();
+  crossfirePowerOff();
+  crossfireTasksStop();
   usbStop();
 
-  // ОТКЛЮЧАЕМ ВСЕ СИСТЕМЫ для максимальной экономии
-  SysTick->CTRL = 0;  // SysTick off
+  // МИНИМАЛЬНОЕ ОТКЛЮЧЕНИЕ - оставляем критические системы
+  // SysTick->CTRL = 0;  // Оставляем SysTick для работы системы
   IWDG->KR = 0x0000;  // Watchdog off
   WWDG->CR = 0x7F;    // Window watchdog off
   WWDG->CFR = 0x7F;
 
-  // Отключаем ВСЕ таймеры
+  // Отключаем только не критичные таймеры
   TIM1->CR1 &= ~TIM_CR1_CEN;
-  TIM2->CR1 &= ~TIM_CR1_CEN;
+  // TIM2->CR1 &= ~TIM_CR1_CEN;  // Оставляем для потенциального использования
   TIM3->CR1 &= ~TIM_CR1_CEN;
   TIM4->CR1 &= ~TIM_CR1_CEN;
   TIM5->CR1 &= ~TIM_CR1_CEN;
@@ -563,8 +530,8 @@ void boardOff()
   TIM13->CR1 &= ~TIM_CR1_CEN;
   TIM14->CR1 &= ~TIM_CR1_CEN;
 
-  // Отключаем ADC
-  ADC1->CR2 &= ~ADC_CR2_ADON;
+  // НЕ отключаем ADC - нужен для работы системы
+  // ADC1->CR2 &= ~ADC_CR2_ADON;
 
   // Оставляем GPIOA и GPIOB включенными для USB detection и кнопки
   // GPIOA нужен для usbPlugged() (PA9), GPIOB для кнопки и PB12
@@ -638,7 +605,7 @@ uint8_t getBoardOffState()
 void boardReboot2bootloader(uint32_t isNeedFlash, uint32_t HwId, uint32_t sn)
 {
   usbStop();
-  // crossfirePowerOff();
+  crossfirePowerOff();
   RTOS_SET_FLAG(get_task_flag(XF_TASK_FLAG));
   writeBackupReg(BKREG_PREPARE_FWUPDATE, isNeedFlash);
   writeBackupReg(BKREG_HW_ID, HwId);
