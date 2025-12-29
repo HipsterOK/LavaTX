@@ -422,7 +422,26 @@ void boardInit()
     runPwrOffCharging();
     // После зарядки проверяем, был ли USB отключен
     if (!usbPlugged()) {
-      TRACE("USB disconnected during charging, powering off...\n");
+      TRACE("USB disconnected during charging, clearing screen and powering off...\n");
+
+      // ПРАВИЛЬНАЯ ОЧИСТКА ЭКРАНА ЗАРЯДКИ С ФИНАЛЬНЫМ ОБНОВЛЕНИЕМ
+
+      // 1. Очищаем буфер дисплея
+      lcdClear();
+
+      // 2. Отправляем пустой буфер на дисплей один раз
+      lcdRefresh();
+
+      // 3. Отключаем дисплей
+      lcdOff();
+
+      // 4. Короткая задержка для стабильности
+      volatile uint32_t delay = 50000;
+      while (delay--) { __ASM volatile("nop"); }
+
+      // 5. Финальная очистка буфера (останется в памяти на случай включения)
+      lcdClear();
+
       boardOff(); // Переходим в выключенное состояние
     }
   }
@@ -433,152 +452,69 @@ void boardOff()
 {
   static int powerOffCount = 0;
   powerOffCount++;
-  TRACE("power off #%d\n", powerOffCount);
+  TRACE("ULTRA LOW POWER MODE #%d\n", powerOffCount);
 
-  // Очищаем дисплей перед выключением
-  lcdClear();
+  // МИНИМАЛЬНОЕ ОТКЛЮЧЕНИЕ - максимальная экономия энергии
 
-#if defined(AUDIO_MUTE_GPIO_PIN)
-  GPIO_SetBits(AUDIO_MUTE_GPIO, AUDIO_MUTE_GPIO_PIN); // mute
-#endif
+  // ПРАВИЛЬНАЯ ОЧИСТКА ЭКРАНА ПРИ ВЫКЛЮЧЕНИИ С ФИНАЛЬНЫМ ОБНОВЛЕНИЕМ
+  lcdClear();          // Очищаем буфер
+  lcdRefresh();        // Отправляем пустой буфер на дисплей
+  lcdOff();            // Физически отключаем дисплей
 
-  crossfirePowerOff();
-  crossfireTasksStop();
-
-#if defined(HAPTIC)
-  if (haptic.busy())
-  {
-    haptic.stop();
-  }
-  hapticOff();
-#endif
-
-  BACKLIGHT_DISABLE();
-
-  // Отключаем все LED перед выключением
-#if defined(CHARGING_LEDS)
-  ledOff();
-#endif
-
-  // Отключаем статусные LED перед выключением питания
-  statusLedAllOff();
-
-  // Отключаем все LED и подсветку
-  BACKLIGHT_DISABLE();
-#if defined(CHARGING_LEDS)
-  ledOff();
-#endif
-
-  // Отключаем GPIO для подсветки и LED
-  GPIO_ResetBits(GPIOE, GPIO_Pin_12); // Подсветка кнопок PE12
-  GPIO_ResetBits(GPIOE, GPIO_Pin_8);  // LED_LOW_BATT PE8
-  GPIO_ResetBits(GPIOE, GPIO_Pin_9);  // LED_PWR_ON PE9
-  GPIO_ResetBits(GPIOE, GPIO_Pin_10); // LED_LINK_OK PE10
-  GPIO_ResetBits(GPIOE, GPIO_Pin_11); // LED_NO_LINK PE11
-
-  // Отключаем все периферийные устройства
-  crossfirePowerOff();
-  crossfireTasksStop();
-
-  // Отключаем питание TPS63060 через PWR_ON (PB12)
-  pwrOff();
-  TRACE("PWR_OFF: PB12 set to LOW\n");
-
-  // Задержка для полного отключения TPS63060
-  volatile uint32_t delay = 100000; // ~20мс
+  // Короткая задержка для стабильности
+  volatile uint32_t delay = 50000;
   while (delay--) { __ASM volatile("nop"); }
 
-  // Отключаем ВСЕ watchdog'и
-  // Independent watchdog
-  IWDG->KR = 0x0000; // Disable IWDG
+  // ЭКСТРЕМАЛЬНОЕ ОТКЛЮЧЕНИЕ ВСЕХ LED
 
-  // Window watchdog
-  WWDG->CR = 0x7F; // Reset WWDG
-  WWDG->CFR = 0x7F; // Disable WWDG
+  // 1. GPIO LED на GPIOE - переводим в input pull-down режим
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 
-  // Clear reset flags
-  RCC->CSR |= RCC_CSR_RMVF;
+  // LED_LOW_BATT (PE8), LED_PWR_ON (PE9), LED_LINK_OK (PE10), LED_NO_LINK (PE11)
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_11;
+  GPIO_Init(GPIOE, &GPIO_InitStructure);
 
-  // Отключаем SysTick
-  SysTick->CTRL = 0;
+  // 2. Отключаем RGB LED (WS2812) на PB11
+  #if defined(CHARGING_LEDS)
+    ledOff();  // Отключаем RGB LED
+  #endif
 
-  // Полностью отключаем системные таймеры
-  // Отключаем SysTick
-  SysTick->CTRL = 0;
+  // 3. Отключаем подсветку кнопок (PE12) - input pull-down
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+  GPIO_Init(GPIOE, &GPIO_InitStructure);
 
-  // Отключаем все таймеры которые могут вызвать interrupt
-  TIM1->CR1 &= ~TIM_CR1_CEN;
-  TIM2->CR1 &= ~TIM_CR1_CEN;
-  TIM3->CR1 &= ~TIM_CR1_CEN;
-  TIM4->CR1 &= ~TIM_CR1_CEN;
-  TIM5->CR1 &= ~TIM_CR1_CEN;
-  TIM6->CR1 &= ~TIM_CR1_CEN;
-  TIM7->CR1 &= ~TIM_CR1_CEN;
-  TIM8->CR1 &= ~TIM_CR1_CEN;
-  TIM9->CR1 &= ~TIM_CR1_CEN;
-  TIM10->CR1 &= ~TIM_CR1_CEN;
-  TIM11->CR1 &= ~TIM_CR1_CEN;
-  TIM12->CR1 &= ~TIM_CR1_CEN;
-  TIM13->CR1 &= ~TIM_CR1_CEN;
-  TIM14->CR1 &= ~TIM_CR1_CEN;
-
-  // Отключаем USB если включен
-  usbStop();
-
-  // Входим в STOP mode вместо полного отключения питания
-  // STOP mode потребляет ~20uA, но система не перезапускается
-  TRACE("ENTERING STOP MODE - MINIMUM POWER CONSUMPTION\n");
-
-  // Очищаем экран перед sleep
-  lcdClear();
-  lcdOff();
-
-  // Настраиваем wakeup от кнопки PA3
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-  SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource3);
-
-  EXTI_InitTypeDef EXTI_InitStructure;
-  EXTI_InitStructure.EXTI_Line = EXTI_Line3;
-  EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising; // PA3 active LOW, wakeup on release
-  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-  EXTI_Init(&EXTI_InitStructure);
-
-  NVIC_InitTypeDef NVIC_InitStructure;
-  NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
-
-  // Software shutdown с минимальным потреблением
-  // Полностью отключаем систему software способом
-  TRACE("SOFTWARE SHUTDOWN - MINIMAL POWER MODE\n");
-
-  // Отключаем USB
-  usbStop();
-
-  // Очищаем экран
-  lcdClear();
-  lcdOff();
-
-  // Отключаем все LED
+  // 4. Вызываем все функции отключения LED для надежности
   statusLedAllOff();
 
-  // Полностью отключаем все watchdog и reset sources
-  IWDG->KR = 0x0000;  // Independent watchdog
-  WWDG->CR = 0x7F;    // Window watchdog
+  // 5. Дополнительное принудительное отключение через ODR
+  GPIOE->ODR &= ~(GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_11 | GPIO_Pin_12);
+  GPIOB->ODR &= ~(GPIO_Pin_11);  // PB11 для RGB LED
+
+  // 6. Гарантируем, что пины в LOW состоянии
+  GPIO_ResetBits(GPIOE, GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_11 | GPIO_Pin_12);
+  GPIO_ResetBits(GPIOB, GPIO_Pin_11);
+
+  // Отключаем звук и подсветку
+  #if defined(AUDIO_MUTE_GPIO_PIN)
+    GPIO_SetBits(AUDIO_MUTE_GPIO, AUDIO_MUTE_GPIO_PIN);
+  #endif
+  BACKLIGHT_DISABLE();
+
+  // Отключаем периферию
+  crossfirePowerOff();
+  crossfireTasksStop();
+  usbStop();
+
+  // ОТКЛЮЧАЕМ ВСЕ СИСТЕМЫ для максимальной экономии
+  SysTick->CTRL = 0;  // SysTick off
+  IWDG->KR = 0x0000;  // Watchdog off
+  WWDG->CR = 0x7F;    // Window watchdog off
   WWDG->CFR = 0x7F;
-  RCC->CSR |= RCC_CSR_RMVF; // Clear reset flags
 
-  // Отключаем brown-out detector если возможно
-  // RCC->CSR &= ~RCC_CSR_BORRSTF; // Не сбрасываем флаг, только проверяем
-
-  // Проверяем причину reset
-  uint32_t resetCause = RCC->CSR & 0xFF000000;
-  TRACE("SHUTDOWN: Reset cause flags = 0x%08X\n", resetCause);
-
-  // Отключаем все системные таймеры
+  // Отключаем ВСЕ таймеры
   TIM1->CR1 &= ~TIM_CR1_CEN;
   TIM2->CR1 &= ~TIM_CR1_CEN;
   TIM3->CR1 &= ~TIM_CR1_CEN;
@@ -594,49 +530,53 @@ void boardOff()
   TIM13->CR1 &= ~TIM_CR1_CEN;
   TIM14->CR1 &= ~TIM_CR1_CEN;
 
-  // Отключаем SysTick
-  SysTick->CTRL = 0;
+  // Отключаем ADC
+  ADC1->CR2 &= ~ADC_CR2_ADON;
 
-  // Глубокий sleep режим с WFI для минимального потребления
-  // Поскольку hardware отключение питания не работает,
-  // используем software deep sleep
-  TRACE("ENTERING DEEP SLEEP WITH WFI - MINIMUM POWER MODE\n");
+  // Оставляем GPIOA и GPIOB включенными для USB detection и кнопки
+  // GPIOA нужен для usbPlugged() (PA9), GPIOB для кнопки и PB12
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 
-  // Отключаем все interrupts для минимального потребления
-  __disable_irq();
+  TRACE("ALL SYSTEMS DISABLED - ULTRA LOW POWER POLLING ONLY\n");
 
-  // Основной sleep loop
+  // ULTRA LOW POWER POLLING - только GPIO для USB и кнопки
+  TRACE("ULTRA LOW POWER POLLING MODE - MAXIMUM BATTERY LIFE\n");
+
   while (1) {
-    // Проверяем кнопку перед WFI
-    if (pwrPressed()) {
-      TRACE("WAKEUP: Button pressed in deep sleep\n");
+    // Убеждаемся, что GPIOA включен для USB detection
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
-      // Восстанавливаем систему
-      __enable_irq();
+    // DEBUG: Проверяем состояние GPIOA и USB
+    static uint32_t debugCounter = 0;
+    debugCounter++;
+    if (debugCounter % 1000 == 0) {  // Каждые 10 секунд
+      TRACE("ULTRA LOW POWER: GPIOA enabled, checking USB...\n");
+    }
 
-      // Восстанавливаем RCC
-      RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+    // Проверяем зарядку (GPIOA Pin 9)
+    if (usbPlugged()) {
+      TRACE("USB CHARGER DETECTED - SIMPLE RESTART INSTEAD OF CHARGING\n");
 
-      // Включаем питание
-      pwrOn();
-
-      // Перезагрузка для чистого старта
+      // ПРОСТОЙ ПОДХОД: вместо зарядки - просто перезапускаем систему
+      // runPwrOffCharging() может вызывать проблемы в этом режиме
+      TRACE("USB CHARGER: System restart for normal charging mode\n");
       NVIC_SystemReset();
     }
 
-    // WFI - Wait For Interrupt (уменьшает потребление даже без interrupts)
-    __WFI();
+    // Проверяем кнопку (PA3) - убеждаемся что GPIOB включен
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+    if (pwrPressed()) {
+      TRACE("POWER BUTTON PRESSED - WAKE UP\n");
+      NVIC_SystemReset();
+    }
+
+    // Минимальная задержка 10мс
+    volatile uint32_t delay = 10000;
+    while (delay--) { __ASM volatile("nop"); }
   }
 }
 
-// Interrupt handler для wakeup из STOP mode
-extern "C" void EXTI3_IRQHandler(void)
-{
-  if (EXTI_GetITStatus(EXTI_Line3) != RESET) {
-    EXTI_ClearITPendingBit(EXTI_Line3);
-    // PWR_EnterSTOPMode завершится автоматически
-  }
-}
+// Interrupt handler не нужен для polling подхода
 
 uint16_t getBatteryVoltage()
 {

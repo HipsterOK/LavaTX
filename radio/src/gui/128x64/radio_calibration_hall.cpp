@@ -56,10 +56,34 @@ void menuCommonCalib(event_t event)
   reusableBuffer.calib.state = CALIB_FINISHED;
 #else
   static uint8_t gim_select = GIMBAL_BOTH_SEL;
+  static uint32_t stateStartTime = 0;
   int16_t force_point_pos[4];
   int16_t *countdown_timer = &reusableBuffer.calib.midVals[0];
   int16_t *count = &reusableBuffer.calib.midVals[1];
   int16_t curr_time;
+
+  // Track state changes for timeout protection
+  static uint8_t lastState = CALIB_START;
+  if (reusableBuffer.calib.state != lastState) {
+    stateStartTime = get_tmr10ms();
+    lastState = reusableBuffer.calib.state;
+    TRACE("CALIB: State changed to %d", reusableBuffer.calib.state);
+  }
+
+  // Timeout protection - if stuck in one state for more than 30 seconds, force progress
+  if (reusableBuffer.calib.state > CALIB_START && reusableBuffer.calib.state < CALIB_FINISHED) {
+    uint32_t timeInState = get_tmr10ms() - stateStartTime;
+    if (timeInState > 3000) {  // 30 seconds timeout
+      TRACE("CALIB: Timeout in state %d (%d seconds), forcing progress", reusableBuffer.calib.state, timeInState/100);
+      if (reusableBuffer.calib.state == CALIB_SET_STICKS_RANGE) {
+        reusableBuffer.calib.state = CALIB_STORE;
+        TRACE("CALIB: Forced to CALIB_STORE due to timeout");
+      } else {
+        reusableBuffer.calib.state++;
+        TRACE("CALIB: Forced to next state %d due to timeout", reusableBuffer.calib.state);
+      }
+    }
+  }
 
   if( reusableBuffer.calib.state > CALIB_START && reusableBuffer.calib.state < CALIB_FINISHED && crossfireSharedData.stick_state > reusableBuffer.calib.state ) {
     // to sync the state from crossfire
