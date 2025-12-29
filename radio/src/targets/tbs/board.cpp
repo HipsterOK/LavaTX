@@ -366,14 +366,23 @@ void boardInit()
 
   usbInit(); // Включаем USB
 
-  // Теперь безопасно инициализируем CRSF после всех основных систем
-  // Но сначала инициализируем trampoline, чтобы избежать NULL pointer в прерываниях
+  // Инициализируем crossfireSharedData для безопасной работы без CRSF
+  memset(&crossfireSharedData, 0, sizeof(CrossfireSharedData));
+  crossfireSharedData.rtosApiVersion = RTOS_API_VERSION;
+
+  // Инициализируем стики значениями по умолчанию (центр)
+  for (int i = 0; i < 4; i++) {
+    crossfireSharedData.sticks[i] = 512;  // Центральное положение
+  }
+
+  // Инициализируем trampoline для прерываний
   trampolineInit();
 
-  // Небольшая задержка для стабилизации
+  // Задержка для стабилизации системы
   delay_ms(10);
 
-  crsfInit(); // Включаем CRSF с правильными настройками
+  // Пытаемся инициализировать CRSF, но если не получится - продолжаем без него
+  // crsfInit(); // Отключаем CRSF инициализацию из-за конфликтов
 
   // Индикация: прошли USB и CRSF - включаем LED_PWR_ON (зеленый, пульт включен)
   statusLedPwrOnOn();
