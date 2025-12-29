@@ -269,19 +269,46 @@ static void showBatteryDebugPopup()
 
 void boardInit()
 {
+  // === ДИАГНОСТИКА ЗАГРУЗКИ ===
+  // ШАГ 1: Включаем GPIOA для отладки и питания
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+
+  // Настраиваем PA0 как DEBUG PIN (выход)
+  GPIO_InitTypeDef GPIO_InitDebug;
+  GPIO_InitDebug.GPIO_Pin = GPIO_Pin_0;
+  GPIO_InitDebug.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitDebug.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitDebug.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_InitDebug.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(GPIOA, &GPIO_InitDebug);
+
+  // СИГНАЛ: ШАГ 1 ЗАВЕРШЕН - PA0 HIGH
+  GPIO_SetBits(GPIOA, GPIO_Pin_0);
+
   // === ИНИЦИАЛИЗАЦИЯ ПИТАНИЯ ===
   // Сначала инициализируем минимум для работы с питанием
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+
+  // СИГНАЛ: ШАГ 2 НАЧАЛО - PA0 LOW
+  GPIO_ResetBits(GPIOA, GPIO_Pin_0);
 
   // Инициализация питания (PWR_ON начинает с LOW)
   pwrInit();
 
+  // СИГНАЛ: PWR INIT ЗАВЕРШЕН - PA0 HIGH
+  GPIO_SetBits(GPIOA, GPIO_Pin_0);
+
   // Включаем питание всегда - логика включения/выключения в boardOff()
   pwrOn();
+
+  // СИГНАЛ: PWR ON ЗАВЕРШЕН - PA0 LOW
+  GPIO_ResetBits(GPIOA, GPIO_Pin_0);
 
   // Небольшая задержка для стабилизации питания TPS63060
   volatile uint32_t delay = 50000;
   while (delay--) { __ASM volatile("nop"); }
+
+  // СИГНАЛ: ЗАДЕРЖКА ЗАВЕРШЕНА - PA0 HIGH
+  GPIO_SetBits(GPIOA, GPIO_Pin_0);
 
   // Теперь продолжаем нормальную инициализацию RCC
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
@@ -445,6 +472,9 @@ void boardInit()
       boardOff(); // Переходим в выключенное состояние
     }
   }
+
+  // СИГНАЛ: BOARD INIT ПОЛНОСТЬЮ ЗАВЕРШЕН - PA0 LOW
+  GPIO_ResetBits(GPIOA, GPIO_Pin_0);
 
 }
 

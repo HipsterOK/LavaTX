@@ -2277,7 +2277,13 @@ int main()
   g_eeGeneral.contrast = LCD_CONTRAST_DEFAULT;
 #endif
 
+  // СИГНАЛ: BOARD INIT ЗАВЕРШЕН - PA0 LOW (если GPIOA инициализирован)
+  GPIO_ResetBits(GPIOA, GPIO_Pin_0);
+
   boardInit();
+
+  // СИГНАЛ: MAIN STARTED - PA0 HIGH
+  GPIO_SetBits(GPIOA, GPIO_Pin_0);
 
 #if defined(COLORLCD)
   loadFonts();
@@ -2286,6 +2292,9 @@ int main()
 #if !defined(SIMU)
   stackPaint();
 #endif
+
+  // СИГНАЛ: STACK PAINT ЗАВЕРШЕН - PA0 LOW
+  GPIO_ResetBits(GPIOA, GPIO_Pin_0);
 
 #if defined(SPLASH) && !defined(STARTUP_ANIMATION)
   if (!UNEXPECTED_SHUTDOWN()) {
@@ -2304,6 +2313,9 @@ int main()
     runFatalErrorScreen(STR_NO_SDCARD);
   }
 #endif
+
+  // СИГНАЛ: ПЕРЕД ЗАПУСКОМ TASKS - PA0 HIGH
+  GPIO_SetBits(GPIOA, GPIO_Pin_0);
 
   tasksStart();
 }
