@@ -366,17 +366,14 @@ void boardInit()
 
   usbInit(); // Включаем USB
 
-  // Инициализируем crossfireSharedData для безопасной работы без CRSF
-  memset(&crossfireSharedData, 0, sizeof(CrossfireSharedData));
-  crossfireSharedData.rtosApiVersion = RTOS_API_VERSION;
-
-  // Инициализируем стики значениями по умолчанию (центр)
-  for (int i = 0; i < 4; i++) {
-    crossfireSharedData.sticks[i] = 512;  // Центральное положение
-  }
-
-  // Инициализируем trampoline для прерываний
-  trampolineInit();
+  // Полностью отключаем всю Crossfire функциональность для тестирования
+  // memset(&crossfireSharedData, 0, sizeof(CrossfireSharedData));
+  // crossfireSharedData.rtosApiVersion = RTOS_API_VERSION;
+  // // Инициализируем стики значениями по умолчанию (центр)
+  // for (int i = 0; i < 4; i++) {
+  //   crossfireSharedData.sticks[i] = 512;  // Центральное положение
+  // }
+  // trampolineInit();
 
   // Задержка для стабилизации системы
   delay_ms(10);
@@ -524,8 +521,8 @@ void boardOff()
   BACKLIGHT_DISABLE();
 
   // Отключаем периферию
-  crossfirePowerOff();
-  crossfireTasksStop();
+          // crossfirePowerOff();
+          // crossfireTasksStop();
   usbStop();
 
   // ОТКЛЮЧАЕМ ВСЕ СИСТЕМЫ для максимальной экономии
@@ -625,7 +622,7 @@ uint8_t getBoardOffState()
 void boardReboot2bootloader(uint32_t isNeedFlash, uint32_t HwId, uint32_t sn)
 {
   usbStop();
-  crossfirePowerOff();
+  // crossfirePowerOff();
   RTOS_SET_FLAG(get_task_flag(XF_TASK_FLAG));
   writeBackupReg(BKREG_PREPARE_FWUPDATE, isNeedFlash);
   writeBackupReg(BKREG_HW_ID, HwId);

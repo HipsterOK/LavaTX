@@ -1357,6 +1357,12 @@ uint16_t anaIn(uint8_t chan)
 {
 #if defined(RADIO_FAMILY_TBS)
   if( chan <= STICK4 ) {
+    // Проверяем, что crossfireSharedData инициализирована
+    static bool crossfireInitialized = false;
+    if (!crossfireInitialized) {
+      // Если не инициализирована - возвращаем центральное значение
+      return 512;
+    }
     int16_t val = crossfireSharedData.sticks[chan];
     return val;
   }
