@@ -123,7 +123,7 @@ void lcdHardwareInit(void)
   SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
   SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
   SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;
+  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;  // Уменьшаем скорость для надежности
   SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
   SPI_InitStructure.SPI_CRCPolynomial = 10;
   SPI_Init(LCD_SPI, &SPI_InitStructure);
@@ -171,30 +171,57 @@ void lcdReset(void)
 void lcdDisplayInit(void)
 {
   spiWriteCommand(0xAE); // Display OFF
+  delay_ms(1);
+
   spiWriteCommand(0xD5);
   spiWriteCommand(0x80); // Clock
+  delay_ms(1);
+
   spiWriteCommand(0xA8);
   spiWriteCommand(0x3F); // Multiplex
+  delay_ms(1);
+
   spiWriteCommand(0xD3);
   spiWriteCommand(0x00);
+  delay_ms(1);
+
   spiWriteCommand(0x40);
+  delay_ms(1);
+
   spiWriteCommand(0x8D);
   spiWriteCommand(0x14);
+  delay_ms(1);
+
   spiWriteCommand(0x20);
   spiWriteCommand(0x02);
+  delay_ms(1);
+
   spiWriteCommand(0xA1);
   spiWriteCommand(0xC8);
+  delay_ms(1);
+
   spiWriteCommand(0xDA);
   spiWriteCommand(0x12);
+  delay_ms(1);
+
   spiWriteCommand(0x81);
   spiWriteCommand(0x7F);
+  delay_ms(1);
+
   spiWriteCommand(0xD9);
   spiWriteCommand(0xF1);
+  delay_ms(1);
+
   spiWriteCommand(0xDB);
   spiWriteCommand(0x40);
+  delay_ms(1);
+
   spiWriteCommand(0xA4);
   spiWriteCommand(0xA6);
+  delay_ms(10);  // Длинная задержка перед включением дисплея
+
   spiWriteCommand(0xAF); // Display ON
+  delay_ms(100); // Задержка после включения дисплея
 }
 
 #define SSD1306_X_OFFSET 0
@@ -240,7 +267,12 @@ void lcdInit(void)
   lcdReset();
   lcdDisplayInit();
 
-  // Очистим экран через DMA
+  // Дополнительная очистка буфера после инициализации дисплея
+  memset(displayBuf, 0x00, sizeof(displayBuf));
+
+  // Очистим экран через DMA дважды для надежности
+  lcdRefresh(true);
+  delay_ms(50);
   lcdRefresh(true);
 
   delay_ms(200);

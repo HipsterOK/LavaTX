@@ -304,6 +304,11 @@ uint8_t g_powerEnabled = 0;
   // ИНИЦИАЛИЗИРУЕМ LCD ПОСЛЕ ВКЛЮЧЕНИЯ ПИТАНИЯ
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
 
+  // ОЧИСТИМ ДИСПЛЕЙНЫЙ БУФЕР СРАЗУ ПОСЛЕ ВКЛЮЧЕНИЯ GPIO
+  // Это гарантирует чистую инициализацию без мусора
+  memset(displayBuf, 0x00, sizeof(displayBuf));
+  TRACE("LCD: displayBuf cleared at startup\n");
+
   delaysInit();
   TRACE("LCD: delaysInit completed\n");
 
