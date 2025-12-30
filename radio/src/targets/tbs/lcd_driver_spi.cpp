@@ -123,7 +123,7 @@ void lcdHardwareInit(void)
   SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
   SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
   SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16; // Уменьшена частота для надежности
+  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32; // Оптимальная частота для SSD1306
   SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
   SPI_InitStructure.SPI_CRCPolynomial = 10;
   SPI_Init(LCD_SPI, &SPI_InitStructure);
@@ -197,7 +197,7 @@ void lcdDisplayInit(void)
   spiWriteCommand(0xAF); // Display ON
 
   // Дополнительная задержка после включения дисплея
-  delay_ms(500);
+  delay_ms(100);
 }
 
 #define SSD1306_X_OFFSET 0
@@ -242,7 +242,7 @@ void lcdInit(void)
   lcdHardwareInit();
 
   // Дополнительная задержка после hardware init
-  delay_ms(100);
+  delay_ms(50);
 
   lcdReset();
   lcdDisplayInit();

@@ -297,9 +297,9 @@ void boardInit()
   // ВКЛЮЧАЕМ ПИТАНИЕ
   pwrOn();
 
-  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ (значительно увеличена)
+  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ
   TRACE("Power: Waiting for voltage stabilization...\n");
-  volatile uint32_t delay = 2000000;  // 2 секунды для полной стабилизации
+  volatile uint32_t delay = 500000;  // 500ms для стабилизации
   while (delay--) { __ASM volatile("nop"); }
   TRACE("Power: Voltage stabilization delay completed\n");
 
