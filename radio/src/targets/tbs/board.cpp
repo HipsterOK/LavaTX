@@ -297,8 +297,8 @@ void boardInit()
   // ВКЛЮЧАЕМ ПИТАНИЕ
   pwrOn();
 
-  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ (увеличена для надежности)
-  volatile uint32_t delay = 200000;  // 200ms для полной стабилизации TPS63060
+  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ
+  volatile uint32_t delay = 100000;  // 100ms для стабилизации TPS63060
   while (delay--) { __ASM volatile("nop"); }
 
   // ИНИЦИАЛИЗИРУЕМ LCD ПОСЛЕ ВКЛЮЧЕНИЯ ПИТАНИЯ
@@ -307,15 +307,15 @@ void boardInit()
   delaysInit();
   TRACE("LCD: delaysInit completed\n");
 
-  // Дополнительная задержка перед инициализацией LCD
-  delay = 100000;  // 100ms дополнительная задержка
+  // Короткая задержка перед инициализацией LCD
+  delay = 50000;  // 50ms
   while (delay--) { __ASM volatile("nop"); }
 
   lcdInit();
   TRACE("LCD: lcdInit completed\n");
 
   // Дополнительная задержка после инициализации LCD
-  delay = 200000;  // 200ms после полной инициализации
+  delay = 50000;  // 50ms после инициализации
   while (delay--) { __ASM volatile("nop"); }
   TRACE("LCD: delay after init completed\n");
 

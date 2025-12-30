@@ -164,17 +164,17 @@ void delay_ms(int ms)
 void lcdReset(void)
 {
   LCD_RST_HIGH();
-  delay_ms(500);  // Увеличена задержка для стабильности
+  delay_ms(100);  // Уменьшена задержка
   LCD_RST_LOW();
-  delay_ms(500);  // Увеличена задержка для стабильности
+  delay_ms(100);  // Уменьшена задержка
   LCD_RST_HIGH();
-  delay_ms(1000); // Дополнительная задержка после сброса
+  delay_ms(200);  // Уменьшена задержка после сброса
 }
 
 // --- Init display ---
 void lcdDisplayInit(void)
 {
-  delay_ms(500); // Дополнительная задержка перед инициализацией команд
+  delay_ms(50); // Уменьшена задержка перед инициализацией команд
   spiWriteCommand(0xAE); // Display OFF
   spiWriteCommand(0xD5);
   spiWriteCommand(0x80); // Clock
@@ -248,7 +248,7 @@ void lcdInit(void)
   // Очистим экран через DMA
   lcdRefresh(true);
 
-  delay_ms(1000); // Увеличена задержка для полной инициализации
+  delay_ms(100); // Уменьшена задержка
 }
 
 // --- Turn LCD on ---
