@@ -302,7 +302,26 @@ void boardInit()
   while (delay--) { __ASM volatile("nop"); }
 
   // ИНИЦИАЛИЗИРУЕМ LCD ПОСЛЕ ВКЛЮЧЕНИЯ ПИТАНИЯ
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
+  // Включим RCC для GPIO и SPI заранее
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+
+  // ТЕСТ: Проверим LED перед инициализацией LCD
+  // Если LED мигают, значит GPIO и питание работают
+  ledInit();
+  TRACE("LED init completed\n");
+
+  // Помигаем LED для визуального теста
+  ledRed();
+  delay = 30000; while (delay--) { __ASM volatile("nop"); } // 30ms красный
+  ledGreen();
+  delay = 30000; while (delay--) { __ASM volatile("nop"); } // 30ms зеленый
+  ledBlue();
+  delay = 30000; while (delay--) { __ASM volatile("nop"); } // 30ms синий
+  ledOff();
+  delay = 30000; while (delay--) { __ASM volatile("nop"); } // 30ms выключен
+
+  TRACE("LED test completed - R/G/B/Off sequence shown\n");
 
   delaysInit();
   TRACE("LCD: delaysInit completed\n");
