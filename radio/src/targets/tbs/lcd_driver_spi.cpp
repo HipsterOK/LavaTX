@@ -7,6 +7,7 @@
 #define LCD_MOSI_PinSource GPIO_PinSource7
 #define LCD_CLK_GPIO_PIN GPIO_Pin_5
 #define LCD_CLK_PinSource GPIO_PinSource5
+
 #define LCD_NCS_GPIO GPIOA
 #define LCD_NCS_GPIO_PIN GPIO_Pin_2
 #define LCD_DC_GPIO GPIOA
@@ -15,26 +16,26 @@
 #define LCD_RST_GPIO_PIN GPIO_Pin_0
 
 #define LCD_CS_HIGH() (LCD_NCS_GPIO->BSRRL = LCD_NCS_GPIO_PIN)
-#define LCD_CS_LOW() (LCD_NCS_GPIO->BSRRH = LCD_NCS_GPIO_PIN)
+#define LCD_CS_LOW()  (LCD_NCS_GPIO->BSRRH = LCD_NCS_GPIO_PIN)
 #define LCD_DC_HIGH() (LCD_DC_GPIO->BSRRL = LCD_DC_GPIO_PIN)
-#define LCD_DC_LOW() (LCD_DC_GPIO->BSRRH = LCD_DC_GPIO_PIN)
+#define LCD_DC_LOW()  (LCD_DC_GPIO->BSRRH = LCD_DC_GPIO_PIN)
 #define LCD_RST_HIGH() (LCD_RST_GPIO->BSRRL = LCD_RST_GPIO_PIN)
-#define LCD_RST_LOW() (LCD_RST_GPIO->BSRRH = LCD_RST_GPIO_PIN)
+#define LCD_RST_LOW()  (LCD_RST_GPIO->BSRRH = LCD_RST_GPIO_PIN)
 
 #define SPI_TIMEOUT 10000000UL
 
 volatile bool lcd_on = false;
 volatile bool lcd_busy = false;
+
 // --- SPI write byte ---
 static void spiWrite(uint8_t byte)
 {
-  while ((LCD_SPI->SR & SPI_SR_TXE) == 0)
-    ;
+  while ((LCD_SPI->SR & SPI_SR_TXE) == 0);
   LCD_SPI->DR = byte;
-  while ((LCD_SPI->SR & SPI_SR_BSY))
-    ;
+  while ((LCD_SPI->SR & SPI_SR_BSY));
   (void)LCD_SPI->DR; // Dummy read
 }
+
 void lcdDmaInit(void)
 {
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
@@ -67,6 +68,7 @@ void lcdDmaInit(void)
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 }
+
 // --- Commands/Data wrappers ---
 static void spiWriteCommand(uint8_t cmd)
 {
@@ -126,6 +128,7 @@ void lcdHardwareInit(void)
   SPI_InitStructure.SPI_CRCPolynomial = 10;
   SPI_Init(LCD_SPI, &SPI_InitStructure);
   SPI_Cmd(LCD_SPI, ENABLE);
+
   lcdDmaInit();
 
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
@@ -137,13 +140,14 @@ void lcdHardwareInit(void)
   GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
   GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  // Потушить на старте (если LED активный HIGH)
   GPIOD->BSRRH = GPIO_Pin_9;
 }
+
 void lcdClearBuffer(void)
 {
   memset(displayBuf, 0x00, sizeof(displayBuf));
 }
+
 void delay_ms(int ms)
 {
   volatile int i, j;
@@ -151,6 +155,7 @@ void delay_ms(int ms)
     for (j = 0; j < 30000; j++)
       __asm volatile("nop");
 }
+
 // --- Reset display ---
 void lcdReset(void)
 {
@@ -165,25 +170,20 @@ void lcdReset(void)
 // --- Init display ---
 void lcdDisplayInit(void)
 {
-  LCD_CS_LOW();
-
   spiWriteCommand(0xAE); // Display OFF
   spiWriteCommand(0xD5);
   spiWriteCommand(0x80); // Clock
   spiWriteCommand(0xA8);
   spiWriteCommand(0x3F); // Multiplex
   spiWriteCommand(0xD3);
-  spiWriteCommand(0x00); // Display offset = 0
-  spiWriteCommand(0x40); // Start line = 0
-
+  spiWriteCommand(0x00);
+  spiWriteCommand(0x40);
   spiWriteCommand(0x8D);
-  spiWriteCommand(0x14); // Charge pump
+  spiWriteCommand(0x14);
   spiWriteCommand(0x20);
-  spiWriteCommand(0x02); // page addressing mode
-
-  spiWriteCommand(0xA1); // Segment remap
-  spiWriteCommand(0xC8); // COM scan direction
-
+  spiWriteCommand(0x02);
+  spiWriteCommand(0xA1);
+  spiWriteCommand(0xC8);
   spiWriteCommand(0xDA);
   spiWriteCommand(0x12);
   spiWriteCommand(0x81);
@@ -192,15 +192,12 @@ void lcdDisplayInit(void)
   spiWriteCommand(0xF1);
   spiWriteCommand(0xDB);
   spiWriteCommand(0x40);
-
-  spiWriteCommand(0xA4); // Resume RAM content
-  spiWriteCommand(0xA6); // Normal display
+  spiWriteCommand(0xA4);
+  spiWriteCommand(0xA6);
   spiWriteCommand(0xAF); // Display ON
-
-  LCD_CS_HIGH();
 }
 
-#define SSD1306_X_OFFSET 0 // Подстройка: сдвиг вправо на 2 пикселя (если нужно)
+#define SSD1306_X_OFFSET 0
 
 void lcdRefresh(bool wait)
 {
@@ -208,16 +205,18 @@ void lcdRefresh(bool wait)
   {
     LCD_CS_LOW();
     LCD_DC_LOW();
+
     spiWrite(0xB0 | page);
     spiWrite(0x00 | (SSD1306_X_OFFSET & 0x0F));
     spiWrite(0x10 | ((SSD1306_X_OFFSET >> 4) & 0x0F));
-    // Дожидаемся, что SPI освободился после отправки команд!
-    while (LCD_SPI->SR & SPI_SR_BSY)
-      ;
+
+    while (LCD_SPI->SR & SPI_SR_BSY);
+
     LCD_DC_HIGH();
 
     DMA_Cmd(LCD_DMA_Stream, DISABLE);
-    DMA_ClearFlag(LCD_DMA_Stream, LCD_DMA_FLAGS); // Use your macro!
+    DMA_ClearFlag(LCD_DMA_Stream, LCD_DMA_FLAGS);
+
     LCD_DMA_Stream->M0AR = (uint32_t)&displayBuf[page * 128];
     LCD_DMA_Stream->NDTR = 128;
     lcd_busy = true;
@@ -225,37 +224,26 @@ void lcdRefresh(bool wait)
     SPI_I2S_DMACmd(LCD_SPI, SPI_I2S_DMAReq_Tx, ENABLE);
     DMA_Cmd(LCD_DMA_Stream, ENABLE);
 
-    while (lcd_busy)
-      ; // Ждем окончания передачи этого page
-    // Не трогай CS тут! Только в IRQ!
+    while (lcd_busy);
   }
 }
 
 // --- Initialize LCD ---
 void lcdInit(void)
 {
-
   DEBUG_TIMER_START(debugTimerPerMain1);
+
+  // Очистим буфер перед инициализацией
+  memset(displayBuf, 0x00, sizeof(displayBuf));
+
   lcdHardwareInit();
   lcdReset();
   lcdDisplayInit();
-  // Выводим белый экран вручную
-  for (uint8_t page = 0; page < 8; page++)
-  {
-    LCD_CS_LOW();
-    LCD_DC_LOW();
-    spiWriteCommand(0xB0 | page);
-    spiWriteCommand(0x00);
-    spiWriteCommand(0x10);
-    LCD_DC_HIGH();
-    for (uint8_t col = 0; col < 128; col++)
-    {
-      spiWrite(0xFF); // белый
-    }
-    LCD_CS_HIGH();
-  }
 
-  delay_ms(500);
+  // Очистим экран через DMA
+  lcdRefresh(true);
+
+  delay_ms(200);
 }
 
 // --- Turn LCD on ---
@@ -264,7 +252,7 @@ void lcdOn(void)
   if (!lcd_on)
   {
     LCD_CS_LOW();
-    spiWriteCommand(0xAF); // Display ON
+    spiWriteCommand(0xAF);
     LCD_CS_HIGH();
     lcd_on = true;
   }
@@ -276,12 +264,13 @@ void lcdOff(void)
   if (lcd_on)
   {
     LCD_CS_LOW();
-    spiWriteCommand(0xAE); // Display OFF
+    spiWriteCommand(0xAE);
     LCD_CS_HIGH();
     lcdRefresh(true);
     lcd_on = false;
   }
 }
+
 void spiWriteCommandWithArg(uint8_t cmd, uint8_t arg)
 {
   LCD_DC_LOW();
@@ -291,21 +280,23 @@ void spiWriteCommandWithArg(uint8_t cmd, uint8_t arg)
   spiWrite(arg);
   LCD_CS_HIGH();
 }
+
 void lcdAdjustContrast(uint8_t val)
 {
   LCD_CS_LOW();
   LCD_DC_LOW();
-  spiWriteCommandWithArg(0x81, val); // Контрастность
+  spiWriteCommandWithArg(0x81, val);
   LCD_CS_HIGH();
 }
+
 void lcdRefreshWait(void)
 {
-    while (lcd_busy);
+  while (lcd_busy);
 }
 
 void lcdSetRefVolt(uint8_t val)
 {
-  (void)val; // Если не используешь, можно просто заглушить
+  (void)val;
 }
 
 extern "C" void DMA2_Stream5_IRQHandler(void)
@@ -314,8 +305,7 @@ extern "C" void DMA2_Stream5_IRQHandler(void)
   {
     DMA_ClearFlag(DMA2_Stream5, DMA_FLAG_TCIF5);
 
-    while (SPI1->SR & SPI_SR_BSY)
-      ;
+    while (SPI1->SR & SPI_SR_BSY);
 
     SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
     DMA_Cmd(DMA2_Stream5, DISABLE);

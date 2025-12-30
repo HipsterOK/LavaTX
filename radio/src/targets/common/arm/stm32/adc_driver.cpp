@@ -334,12 +334,9 @@ void adcRead()
   }
 
   #if defined(INTERNAL_MODULE_CRSF)
-    // Записываем в crossfireSharedData для совместимости (только если инициализирована)
-    static bool crossfireInitialized = false;
-    if (crossfireInitialized) {
-      for (int i = 0; i < 4; ++i) {
-        crossfireSharedData.sticks[i] = prevVal[i];
-      }
+    // Записываем в crossfireSharedData для совместимости
+    for (int i = 0; i < 4; ++i) {
+      crossfireSharedData.sticks[i] = prevVal[i];
     }
   #endif
 #endif

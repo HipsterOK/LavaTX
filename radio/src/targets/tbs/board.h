@@ -790,6 +790,9 @@ extern AuxSerialRxFifo auxSerialRxFifo;
   uint8_t getBoardOffState();
 #endif
 
+// Глобальный флаг состояния питания
+extern uint8_t g_powerEnabled;
+
 void trampolineInit(void);
 void boardReboot2bootloader(uint32_t isNeedFlash, uint32_t HwId, uint32_t sn);
 void loadDefaultRadioSettings(void);

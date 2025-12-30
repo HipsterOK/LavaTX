@@ -1355,13 +1355,12 @@ tmr10ms_t jitterResetTime = 0;
 #if !defined(SIMU)
 uint16_t anaIn(uint8_t chan)
 {
-  // Temporarily disable crossfire sticks to fix boot issue
-  // #if defined(RADIO_FAMILY_TBS)
-  //   if( chan <= STICK4 ) {
-  //     int16_t val = crossfireSharedData.sticks[chan];
-  //     return val;
-  //   }
-  // #endif
+#if defined(RADIO_FAMILY_TBS)
+  if( chan <= STICK4 ) {
+    int16_t val = crossfireSharedData.sticks[chan];
+    return val;
+  }
+#endif
   return ANA_FILT(chan);
 }
 
@@ -2277,13 +2276,38 @@ int main()
   g_eeGeneral.contrast = LCD_CONTRAST_DEFAULT;
 #endif
 
-  // СИГНАЛ: BOARD INIT ЗАВЕРШЕН - PA0 LOW (если GPIOA инициализирован)
-  GPIO_ResetBits(GPIOA, GPIO_Pin_0);
-
   boardInit();
 
-  // СИГНАЛ: MAIN STARTED - PA0 HIGH
-  GPIO_SetBits(GPIOA, GPIO_Pin_0);
+  // Проверяем, включено ли питание - если нет, то ждем нажатия кнопки
+  if (!g_powerEnabled) {
+    TRACE("MAIN: Power not enabled, waiting for power button\n");
+
+    // Ждем нажатия кнопки питания для включения системы
+    while (!g_powerEnabled) {
+      // Проверяем кнопку питания
+      if (pwrPressed()) {
+        TRACE("MAIN: Power button pressed, enabling power and restarting\n");
+
+        // Включаем питание
+        pwrOn();
+
+        // Включаем питание и делаем полный перезапуск для чистой инициализации
+        pwrOn();
+
+        // Устанавливаем флаг питания перед перезапуском
+        g_powerEnabled = 1;
+
+        TRACE("MAIN: Power enabled, system reset for clean startup\n");
+
+        // Полный системный reset для чистого запуска с включенным питанием
+        NVIC_SystemReset();
+      }
+
+      // Маленькая задержка
+      volatile uint32_t delay = 1000;
+      while (delay--) { __ASM volatile("nop"); }
+    }
+  }
 
 #if defined(COLORLCD)
   loadFonts();
@@ -2292,9 +2316,6 @@ int main()
 #if !defined(SIMU)
   stackPaint();
 #endif
-
-  // СИГНАЛ: STACK PAINT ЗАВЕРШЕН - PA0 LOW
-  GPIO_ResetBits(GPIOA, GPIO_Pin_0);
 
 #if defined(SPLASH) && !defined(STARTUP_ANIMATION)
   if (!UNEXPECTED_SHUTDOWN()) {
@@ -2313,9 +2334,6 @@ int main()
     runFatalErrorScreen(STR_NO_SDCARD);
   }
 #endif
-
-  // СИГНАЛ: ПЕРЕД ЗАПУСКОМ TASKS - PA0 HIGH
-  GPIO_SetBits(GPIOA, GPIO_Pin_0);
 
   tasksStart();
 }
@@ -2431,8 +2449,19 @@ uint32_t pwrCheck()
 uint32_t pwrCheck()
 {
 #if defined(SOFT_PWR_CTRL)
+  static uint32_t pwr_press_start = 0;
+
   if (pwrPressed()) {
-    return e_power_on;
+    if (pwr_press_start == 0) {
+      pwr_press_start = get_tmr10ms();
+    }
+    else if (get_tmr10ms() - pwr_press_start > 200) {  // 2 секунды нажатия
+      return e_power_off;  // Длительное нажатие - выключение
+    }
+    return e_power_press;  // Короткое нажатие - показывать индикацию
+  }
+  else {
+    pwr_press_start = 0;
   }
 #endif
 

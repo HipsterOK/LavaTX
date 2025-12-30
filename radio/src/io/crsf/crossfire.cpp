@@ -83,7 +83,7 @@ void crsfInit(void)
 
   crossfireSharedData.rtosApiVersion = RTOS_API_VERSION;
 
-  // trampolineInit() теперь вызывается раньше в boardInit()
+  trampolineInit();
 }
 
 void crsfThisDevice(uint8_t * pArr)
