@@ -123,7 +123,7 @@ void lcdHardwareInit(void)
   SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
   SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
   SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32; // Оптимальная частота для SSD1306
+  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;
   SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
   SPI_InitStructure.SPI_CRCPolynomial = 10;
   SPI_Init(LCD_SPI, &SPI_InitStructure);
@@ -195,9 +195,6 @@ void lcdDisplayInit(void)
   spiWriteCommand(0xA4);
   spiWriteCommand(0xA6);
   spiWriteCommand(0xAF); // Display ON
-
-  // Дополнительная задержка после включения дисплея
-  delay_ms(100);
 }
 
 #define SSD1306_X_OFFSET 0
@@ -240,10 +237,6 @@ void lcdInit(void)
   memset(displayBuf, 0x00, sizeof(displayBuf));
 
   lcdHardwareInit();
-
-  // Дополнительная задержка после hardware init
-  delay_ms(50);
-
   lcdReset();
   lcdDisplayInit();
 
@@ -251,19 +244,6 @@ void lcdInit(void)
   lcdRefresh(true);
 
   delay_ms(200);
-
-  // ТЕСТ: Заполним экран вертикальными полосами для проверки
-  memset(displayBuf, 0x00, sizeof(displayBuf));
-  for (uint32_t i = 0; i < sizeof(displayBuf); i++) {
-    uint32_t col = i % 128;
-    displayBuf[i] = (col < 64) ? 0xFF : 0x00;  // Левая половина белая, правая черная
-  }
-  lcdRefresh(true);
-  delay_ms(1000);  // Покажем тест на 1 секунду
-
-  // Вернемся к нормальному пустому экрану
-  memset(displayBuf, 0x00, sizeof(displayBuf));
-  lcdRefresh(true);
 }
 
 // --- Turn LCD on ---
