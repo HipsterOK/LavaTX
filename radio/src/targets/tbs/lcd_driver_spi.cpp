@@ -192,13 +192,13 @@ void lcdDisplayInit(void)
   spiWriteCommand(0xDA);
   spiWriteCommand(0x12);
   spiWriteCommand(0x81);
-  spiWriteCommand(0x7F);
+  spiWriteCommand(0xCF); // Контрастность - увеличена для лучшей видимости
   spiWriteCommand(0xD9);
   spiWriteCommand(0xF1);
   spiWriteCommand(0xDB);
   spiWriteCommand(0x40);
-  spiWriteCommand(0xA4);
-  spiWriteCommand(0xA6);
+  spiWriteCommand(0xA4); // Display follows RAM content
+  spiWriteCommand(0xA6); // Normal display (not inverted)
   spiWriteCommand(0xAF); // Display ON
 }
 
@@ -245,7 +245,16 @@ void lcdInit(void)
   lcdReset();
   lcdDisplayInit();
 
-  // Очистим экран через DMA
+  // ТЕСТ: Заполним весь экран белым цветом для проверки
+  memset(displayBuf, 0xFF, sizeof(displayBuf));
+
+  // Очистим экран через DMA (должен показать белый экран)
+  lcdRefresh(true);
+
+  delay_ms(500); // Дадим время увидеть белый экран
+
+  // Теперь очистим экран для нормальной работы
+  memset(displayBuf, 0x00, sizeof(displayBuf));
   lcdRefresh(true);
 
   delay_ms(100); // Уменьшена задержка
