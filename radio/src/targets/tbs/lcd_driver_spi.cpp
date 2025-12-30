@@ -94,6 +94,12 @@ void lcdHardwareInit(void)
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
+  // Убедимся, что все пины дисплея в безопасном состоянии перед инициализацией
+  LCD_CS_HIGH();
+  LCD_DC_HIGH();
+  LCD_RST_HIGH();
+  delay_ms(10);
+
   GPIO_PinAFConfig(LCD_SPI_GPIO, LCD_CLK_PinSource, GPIO_AF_SPI1);
   GPIO_PinAFConfig(LCD_SPI_GPIO, LCD_MOSI_PinSource, GPIO_AF_SPI1);
 
@@ -123,7 +129,7 @@ void lcdHardwareInit(void)
   SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
   SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
   SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;  // Уменьшаем скорость для надежности
+  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_128;  // Средняя скорость
   SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
   SPI_InitStructure.SPI_CRCPolynomial = 10;
   SPI_Init(LCD_SPI, &SPI_InitStructure);
@@ -160,11 +166,11 @@ void delay_ms(int ms)
 void lcdReset(void)
 {
   LCD_RST_HIGH();
-  delay_ms(200);
+  delay_ms(50);
   LCD_RST_LOW();
-  delay_ms(200);
+  delay_ms(50);
   LCD_RST_HIGH();
-  delay_ms(200);
+  delay_ms(100);  // Дополнительное время для стабилизации после сброса
 }
 
 // --- Init display ---
@@ -221,7 +227,7 @@ void lcdDisplayInit(void)
   delay_ms(10);  // Длинная задержка перед включением дисплея
 
   spiWriteCommand(0xAF); // Display ON
-  delay_ms(100); // Задержка после включения дисплея
+  delay_ms(500); // Увеличенная задержка после включения дисплея
 }
 
 #define SSD1306_X_OFFSET 0
@@ -272,10 +278,10 @@ void lcdInit(void)
 
   // Очистим экран через DMA дважды для надежности
   lcdRefresh(true);
-  delay_ms(50);
+  delay_ms(100);
   lcdRefresh(true);
 
-  delay_ms(200);
+  delay_ms(500); // Увеличенная задержка после инициализации
 }
 
 // --- Turn LCD on ---
