@@ -251,6 +251,19 @@ void lcdInit(void)
   lcdRefresh(true);
 
   delay_ms(200);
+
+  // ТЕСТ: Заполним экран вертикальными полосами для проверки
+  memset(displayBuf, 0x00, sizeof(displayBuf));
+  for (uint32_t i = 0; i < sizeof(displayBuf); i++) {
+    uint32_t col = i % 128;
+    displayBuf[i] = (col < 64) ? 0xFF : 0x00;  // Левая половина белая, правая черная
+  }
+  lcdRefresh(true);
+  delay_ms(1000);  // Покажем тест на 1 секунду
+
+  // Вернемся к нормальному пустому экрану
+  memset(displayBuf, 0x00, sizeof(displayBuf));
+  lcdRefresh(true);
 }
 
 // --- Turn LCD on ---
