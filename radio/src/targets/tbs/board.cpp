@@ -297,44 +297,23 @@ void boardInit()
   // ВКЛЮЧАЕМ ПИТАНИЕ
   pwrOn();
 
-  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ
-  volatile uint32_t delay = 100000;  // 100ms для стабилизации TPS63060
+  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ (значительно увеличена)
+  TRACE("Power: Waiting for voltage stabilization...\n");
+  volatile uint32_t delay = 2000000;  // 2 секунды для полной стабилизации
   while (delay--) { __ASM volatile("nop"); }
+  TRACE("Power: Voltage stabilization delay completed\n");
 
   // ИНИЦИАЛИЗИРУЕМ LCD ПОСЛЕ ВКЛЮЧЕНИЯ ПИТАНИЯ
-  // Включим RCC для GPIO и SPI заранее
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
-
-  // ТЕСТ: Проверим LED перед инициализацией LCD
-  // Если LED мигают, значит GPIO и питание работают
-  ledInit();
-  TRACE("LED init completed\n");
-
-  // Помигаем LED для визуального теста
-  ledRed();
-  delay = 30000; while (delay--) { __ASM volatile("nop"); } // 30ms красный
-  ledGreen();
-  delay = 30000; while (delay--) { __ASM volatile("nop"); } // 30ms зеленый
-  ledBlue();
-  delay = 30000; while (delay--) { __ASM volatile("nop"); } // 30ms синий
-  ledOff();
-  delay = 30000; while (delay--) { __ASM volatile("nop"); } // 30ms выключен
-
-  TRACE("LED test completed - R/G/B/Off sequence shown\n");
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
 
   delaysInit();
   TRACE("LCD: delaysInit completed\n");
-
-  // Короткая задержка перед инициализацией LCD
-  delay = 50000;  // 50ms
-  while (delay--) { __ASM volatile("nop"); }
 
   lcdInit();
   TRACE("LCD: lcdInit completed\n");
 
   // Дополнительная задержка после инициализации LCD
-  delay = 50000;  // 50ms после инициализации
+  delay = 50000;  // 50ms
   while (delay--) { __ASM volatile("nop"); }
   TRACE("LCD: delay after init completed\n");
 

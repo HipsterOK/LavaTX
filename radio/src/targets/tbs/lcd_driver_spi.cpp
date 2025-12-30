@@ -75,9 +75,7 @@ static void spiWriteCommand(uint8_t cmd)
   LCD_DC_LOW();
   LCD_CS_LOW();
   spiWrite(cmd);
-  delay_us(10);  // Небольшая задержка между командой и CS HIGH
   LCD_CS_HIGH();
-  delay_us(5);   // Задержка перед следующей командой
 }
 
 static void spiWriteData(uint8_t data)
@@ -85,9 +83,7 @@ static void spiWriteData(uint8_t data)
   LCD_DC_HIGH();
   LCD_CS_LOW();
   spiWrite(data);
-  delay_us(10);  // Небольшая задержка между данными и CS HIGH
   LCD_CS_HIGH();
-  delay_us(5);   // Задержка перед следующей командой
 }
 
 // --- Hardware init ---
@@ -95,9 +91,8 @@ void lcdHardwareInit(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
 
-  // RCC уже включены в boardInit()
-  // RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-  // RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
   GPIO_PinAFConfig(LCD_SPI_GPIO, LCD_CLK_PinSource, GPIO_AF_SPI1);
   GPIO_PinAFConfig(LCD_SPI_GPIO, LCD_MOSI_PinSource, GPIO_AF_SPI1);
@@ -128,7 +123,7 @@ void lcdHardwareInit(void)
   SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
   SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
   SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;
+  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16; // Уменьшена частота для надежности
   SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
   SPI_InitStructure.SPI_CRCPolynomial = 10;
   SPI_Init(LCD_SPI, &SPI_InitStructure);
@@ -165,17 +160,16 @@ void delay_ms(int ms)
 void lcdReset(void)
 {
   LCD_RST_HIGH();
-  delay_ms(100);  // Уменьшена задержка
+  delay_ms(200);
   LCD_RST_LOW();
-  delay_ms(100);  // Уменьшена задержка
+  delay_ms(200);
   LCD_RST_HIGH();
-  delay_ms(200);  // Уменьшена задержка после сброса
+  delay_ms(200);
 }
 
 // --- Init display ---
 void lcdDisplayInit(void)
 {
-  delay_ms(50); // Уменьшена задержка перед инициализацией команд
   spiWriteCommand(0xAE); // Display OFF
   spiWriteCommand(0xD5);
   spiWriteCommand(0x80); // Clock
@@ -193,14 +187,17 @@ void lcdDisplayInit(void)
   spiWriteCommand(0xDA);
   spiWriteCommand(0x12);
   spiWriteCommand(0x81);
-  spiWriteCommand(0xCF); // Контрастность - увеличена для лучшей видимости
+  spiWriteCommand(0x7F);
   spiWriteCommand(0xD9);
   spiWriteCommand(0xF1);
   spiWriteCommand(0xDB);
   spiWriteCommand(0x40);
-  spiWriteCommand(0xA4); // Display follows RAM content
-  spiWriteCommand(0xA6); // Normal display (not inverted)
+  spiWriteCommand(0xA4);
+  spiWriteCommand(0xA6);
   spiWriteCommand(0xAF); // Display ON
+
+  // Дополнительная задержка после включения дисплея
+  delay_ms(500);
 }
 
 #define SSD1306_X_OFFSET 0
@@ -243,22 +240,17 @@ void lcdInit(void)
   memset(displayBuf, 0x00, sizeof(displayBuf));
 
   lcdHardwareInit();
+
+  // Дополнительная задержка после hardware init
+  delay_ms(100);
+
   lcdReset();
   lcdDisplayInit();
 
-  // ТЕСТ: Заполним весь экран белым цветом для проверки
-  memset(displayBuf, 0xFF, sizeof(displayBuf));
-
-  // Очистим экран через DMA (должен показать белый экран)
+  // Очистим экран через DMA
   lcdRefresh(true);
 
-  delay_ms(500); // Дадим время увидеть белый экран
-
-  // Теперь очистим экран для нормальной работы
-  memset(displayBuf, 0x00, sizeof(displayBuf));
-  lcdRefresh(true);
-
-  delay_ms(100); // Уменьшена задержка
+  delay_ms(200);
 }
 
 // --- Turn LCD on ---
