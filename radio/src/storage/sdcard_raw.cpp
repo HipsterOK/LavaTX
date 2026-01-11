@@ -212,8 +212,30 @@ void storageCheck(bool immediately)
 
 void storageReadAll()
 {
+  TRACE("storageReadAll: starting, SD_CARD_PRESENT=%d", SD_CARD_PRESENT() ? 1 : 0);
   modelslist = new ModelsList();
   // ALERT(STR_STORAGE_WARNING, "0 START", AU_BAD_RADIODATA);
+
+  // Если SD карта отсутствует, сразу используем дефолтные настройки
+  if (!SD_CARD_PRESENT()) {
+    TRACE("storageReadAll: no SD card, using defaults");
+    TRACE("SD card not present, using default settings");
+    generalDefault();
+    modelDefault(1);
+    // Не пытаемся сохранять, так как SD карты нет
+    // storageDirty(EE_GENERAL|EE_MODEL);
+    // storageCheck(true);
+
+    // Пропускаем загрузку языков и моделей
+    currentLanguagePackIdx = 0;
+    currentLanguagePack = languagePacks[0];
+
+    // Создаём пустой список моделей
+    modelslist->clear();
+
+    TRACE("SD card not present - initialized with defaults");
+    return;
+  }
 
   const char* radioError = loadRadioSettings();
   // ALERT(STR_STORAGE_WARNING, "1 RADIO OK", AU_BAD_RADIODATA);

@@ -270,9 +270,9 @@ uint8_t g_powerEnabled = 0;
    POPUP_WARNING(g_battDebugMsg);
  }
  
- void boardInit()
- {
-   TRACE("BOARD_INIT: Starting board initialization\n");
+void boardInit()
+{
+  TRACE("BOARD_INIT: Starting board initialization, SD_PRESENT=%d", SD_CARD_PRESENT() ? 1 : 0);
   // === ИНИЦИАЛИЗАЦИЯ ПИТАНИЯ ===
   // Сначала инициализируем минимум для работы с питанием
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
@@ -280,28 +280,63 @@ uint8_t g_powerEnabled = 0;
   // Инициализация питания (PWR_ON начинает с LOW)
   pwrInit();
 
-  // Всегда включаем питание для нормальной работы системы
-  TRACE("BOARD_INIT: Enabling power and starting system\n");
+  // ПРОВЕРЯЕМ КНОПКУ ПИТАНИЯ - если не нажата, то НЕ ВКЛЮЧАЕМ ПИТАНИЕ
+  if (!pwrPressed()) {
+    TRACE("BOARD_INIT: Power button not pressed, system will not start\n");
+    // Устанавливаем флаг, что питание не включено
+    g_powerEnabled = 0;
+    // Минимальная инициализация без питания
+    BACKLIGHT_DISABLE();
+    return; // Выходим из boardInit() без включения питания
+  }
+
+  // КНОПКА НАЖАТА - ВКЛЮЧАЕМ ПИТАНИЕ И ЗАПУСКАЕМ СИСТЕМУ
+  TRACE("BOARD_INIT: Power button pressed, enabling power and starting system\n");
   g_powerEnabled = 1; // Устанавливаем флаг, что питание включено
 
   // ВКЛЮЧАЕМ ПИТАНИЕ
   pwrOn();
 
-  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ
+  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ (увеличена для надежности)
   volatile uint32_t delay = 200000;  // 200ms для полной стабилизации TPS63060
   while (delay--) { __ASM volatile("nop"); }
 
-  TRACE("Power enabled - system starting\n");
+  // ИНИЦИАЛИЗИРУЕМ LCD ПОСЛЕ ВКЛЮЧЕНИЯ ПИТАНИЯ
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
 
-  // Теперь продолжаем нормальную инициализацию RCC
-  // RCC для GPIOC/D/E уже включен выше для LCD
+  delaysInit();
+  TRACE("LCD: delaysInit completed\n");
 
-  // Инициализация SD_DETECT (PC5) как вход с pull-up
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Pin = SD_DETECT_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(SD_DETECT_GPIO_PORT, &GPIO_InitStructure);
+  lcdInit();
+  TRACE("LCD: lcdInit completed\n");
+
+  // Дополнительная задержка после инициализации LCD
+  delay = 50000;  // 50ms
+  while (delay--) { __ASM volatile("nop"); }
+  TRACE("LCD: delay after init completed\n");
+
+  // Очистить экран и продолжить нормальную работу
+  lcdClear();
+  TRACE("LCD: Screen cleared for normal operation\n");
+
+  lcdRefresh();
+  TRACE("LCD: Normal refresh completed\n");
+
+  // Для монохромного дисплея подсветка не нужна
+  // BACKLIGHT_ENABLE();
+  TRACE("LCD: LCD initialization completed\n");
+
+  TRACE("Power enabled and LCD initialized - system starting\n");
+ 
+   // Теперь продолжаем нормальную инициализацию RCC
+   // RCC для GPIOC/D/E уже включен выше для LCD
+ 
+   // Инициализация SD_DETECT (PC5) как вход с pull-up
+   GPIO_InitTypeDef GPIO_InitStructure;
+   GPIO_InitStructure.GPIO_Pin = SD_DETECT_PIN;
+   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+   GPIO_Init(SD_DETECT_GPIO_PORT, &GPIO_InitStructure);
  
    // Теперь продолжаем нормальную инициализацию
    bool skipCharging = false;
@@ -322,8 +357,8 @@ uint8_t g_powerEnabled = 0;
                         TELEMETRY_RCC_APB1Periph | AUX_SERIAL_RCC_APB1Periph,
                         ENABLE);
  
-  // 3. Добавление SPI1 (LCD) на APB2
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1| RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10 | ADC_RCC_APB2Periph, ENABLE);
+   // 3. Добавление SPI1 (LCD) на APB2
+   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1| RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10 | ADC_RCC_APB2Periph, ENABLE);
  
  #elif defined(RADIO_MAMBO)
    RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
@@ -350,42 +385,16 @@ uint8_t g_powerEnabled = 0;
  #if defined(ROTARY_ENCODER_NAVIGATION)
    rotaryEncoderInit();
  #endif
-   adcInit();
+   adcInit();  // delaysInit() и lcdInit() уже вызваны выше
  
  #if defined(RADIO_MAMBO)
    backlightInit();
- #elif defined(RADIO_TANGO)
-   backlightInit(); // Инициализируем подсветку для TANGO
  #endif
    audioInit(); // Включаем audio
    init2MhzTimer();
    init5msTimer();
-
-   // ИНИЦИАЛИЗИРУЕМ LCD ПОСЛЕ ВКЛЮЧЕНИЯ ПИТАНИЯ
-   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
-
-   delaysInit();
-   TRACE("LCD: delaysInit completed\n");
-
-   lcdInit();
-   TRACE("LCD: lcdInit completed\n");
-
-   // Дополнительная задержка после инициализации LCD
-   volatile uint32_t lcd_delay = 50000;  // 50ms
-   while (lcd_delay--) { __ASM volatile("nop"); }
-   TRACE("LCD: delay after init completed\n");
-
-   // Очистить экран и продолжить нормальную работу
-   lcdClear();
-   TRACE("LCD: Screen cleared for normal operation\n");
-
-   lcdRefresh();
-   TRACE("LCD: Normal refresh completed\n");
-
-   // Для монохромного дисплея подсветка не нужна
-   // BACKLIGHT_ENABLE();
-   TRACE("LCD: LCD initialization completed\n");
-
+   backlightInit(); // Инициализируем подсветку после CRSF
+ 
    // Инициализация статусных LED
    statusLedInit();
  
