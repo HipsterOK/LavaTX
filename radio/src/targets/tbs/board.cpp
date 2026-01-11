@@ -656,22 +656,28 @@ void boardInit()
  
  // Interrupt handler не нужен для polling подхода
  
- uint16_t getBatteryVoltage()
- {
-  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using filtered ADC value on purpose
-   float batt_scale = 0;
- #if defined(RADIO_TANGO)
-   if (IS_PCBREV_01())
-     batt_scale = BATT_SCALE;
-   else 
-     batt_scale = BATT_SCALE2;
- #elif defined(RADIO_MAMBO)
-   batt_scale = BATT_SCALE;
- #endif
- 
-   instant_vbat = instant_vbat / batt_scale + g_eeGeneral.txVoltageCalibration;
-   return (uint16_t)instant_vbat;
- }
+uint16_t getBatteryVoltage()
+{
+  // Reset calibration if it's out of range
+  if (g_eeGeneral.txVoltageCalibration < -50 || g_eeGeneral.txVoltageCalibration > 50) {
+    g_eeGeneral.txVoltageCalibration = BATT_CALIB_OFFSET;
+    storageDirty(EE_GENERAL);
+  }
+
+  int32_t instant_vbat = anaIn(TX_VOLTAGE); // using external battery pin PB1
+  float batt_scale = 0;
+#if defined(RADIO_TANGO)
+  if (IS_PCBREV_01())
+    batt_scale = BATT_SCALE;
+  else
+    batt_scale = BATT_SCALE2;
+#elif defined(RADIO_MAMBO)
+  batt_scale = BATT_SCALE;
+#endif
+
+  instant_vbat = instant_vbat / batt_scale + g_eeGeneral.txVoltageCalibration;
+  return (uint16_t)instant_vbat;
+}
  
  uint8_t getBoardOffState()
  {

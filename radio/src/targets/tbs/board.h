@@ -432,17 +432,17 @@
  #define BATTERY_MAX                   42 // 4.2V
  #define BATTERY_TYPE_FIXED
  
- #define BATT_CALIB_OFFSET             5
- #if defined(RADIO_LAVA_ONE)
- #define BATT_SCALE                    (3.10f)
- #define BATT_SCALE2                   (3.10f)
- #elif defined(RADIO_MAMBO)
- #define BATT_SCALE                    (4.55f)
- #elif defined(RADIO_TANGO)
- #define BATT_SCALE                    (4.76f)
- #define BATT_SCALE2                   (4.76f)
- #endif
- // BATT_SCALE = 12-bit max value * pd / ANALOG_MULTIPLIER / vref / multiplication
+#define BATT_CALIB_OFFSET             5
+#if defined(RADIO_LAVA_ONE)
+#define BATT_SCALE                    (3.10f)
+#define BATT_SCALE2                   (3.10f)
+#elif defined(RADIO_MAMBO)
+#define BATT_SCALE                    (4.55f)
+#elif defined(RADIO_TANGO)
+#define BATT_SCALE                    (5.16f)  // Calibrated for PB1 divider -> ADC=4095 -> 4.02V battery
+#define BATT_SCALE2                   (5.08f)
+#endif
+// BATT_SCALE = 12-bit max value * pd / ANALOG_MULTIPLIER / vref / multiplication
  //            = 4095 * 2/3 / 2 / vref / 100
  
  #if defined(__cplusplus)

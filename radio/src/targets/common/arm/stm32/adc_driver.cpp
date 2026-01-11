@@ -121,6 +121,9 @@ void adcInit()
   ADC_MAIN->CR2 = ADC_CR2_ADON | ADC_CR2_DMA | ADC_CR2_DDS;
   ADC_MAIN->SQR1 = (NUM_ANALOGS_ADC - 1) << 20; // bits 23:20 = number of conversions
 
+  // Enable temperature sensor and VBAT channel after ADC is enabled
+  ADC->CCR |= ADC_CCR_TSVREFE;
+
 #if defined(PCBX10)
   if (STICKS_PWM_ENABLED()) {
     ADC_MAIN->SQR2 = (ADC_CHANNEL_SLIDER2 << 0) + (ADC_CHANNEL_BATT << 5);
@@ -331,6 +334,12 @@ void adcRead()
           prevVal[i] = raw[i];
       }
       s_anaFilt[i] = prevVal[i];
+  }
+
+  // Initialize other analog channels (battery, etc.)
+  for (int i = FIRST_ANALOG_ADC; i < NUM_ANALOGS; ++i) {
+    extern uint16_t s_anaFilt[];
+    s_anaFilt[i] = adcValues[i] * 16;  // JITTER_ALPHA = 16
   }
 
   #if defined(INTERNAL_MODULE_CRSF)
