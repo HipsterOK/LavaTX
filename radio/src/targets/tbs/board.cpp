@@ -291,15 +291,11 @@ uint8_t g_powerEnabled = 0;
   volatile uint32_t delay = 500000;  // 500ms для полной стабилизации TPS63060 и LCD
   while (delay--) { __ASM volatile("nop"); }
 
-  // ИНИЦИАЛИЗИРУЕМ GPIOC для LCD и SD_DETECT
+  // ИНИЦИАЛИЗИРУЕМ GPIOC для LCD
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
 
-  // Инициализация SD_DETECT (PC5) как вход с pull-up - РАНО, сразу после включения питания
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Pin = SD_DETECT_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(SD_DETECT_GPIO_PORT, &GPIO_InitStructure);
+  // Включаем SPI1 для LCD до инициализации
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
   delaysInit();
   TRACE("LCD: delaysInit completed\n");
@@ -324,10 +320,16 @@ uint8_t g_powerEnabled = 0;
   TRACE("LCD: LCD initialization completed\n");
 
   TRACE("Power enabled and LCD initialized - system starting\n");
- 
+
   // Теперь продолжаем нормальную инициализацию RCC
   // RCC для GPIOC/D/E уже включен выше для LCD
-  // SD_DETECT уже инициализирован выше
+
+  // Инициализация SD_DETECT (PC5) как вход с pull-up
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = SD_DETECT_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(SD_DETECT_GPIO_PORT, &GPIO_InitStructure);
  
    // Теперь продолжаем нормальную инициализацию
    bool skipCharging = false;
@@ -348,8 +350,8 @@ uint8_t g_powerEnabled = 0;
                         TELEMETRY_RCC_APB1Periph | AUX_SERIAL_RCC_APB1Periph,
                         ENABLE);
  
-   // 3. Добавление SPI1 (LCD) на APB2
-   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1| RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10 | ADC_RCC_APB2Periph, ENABLE);
+  // 3. Добавление SPI1 уже включен выше для LCD, добавляем остальные
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10 | ADC_RCC_APB2Periph, ENABLE);
  
  #elif defined(RADIO_MAMBO)
    RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
@@ -380,11 +382,12 @@ uint8_t g_powerEnabled = 0;
  
  #if defined(RADIO_MAMBO)
    backlightInit();
+ #elif defined(RADIO_TANGO)
+   backlightInit(); // Инициализируем подсветку для TANGO
  #endif
    audioInit(); // Включаем audio
    init2MhzTimer();
    init5msTimer();
-   backlightInit(); // Инициализируем подсветку после CRSF
  
    // Инициализация статусных LED
    statusLedInit();
