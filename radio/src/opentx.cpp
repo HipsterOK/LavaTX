@@ -1957,6 +1957,26 @@ void runStartupAnimation()
   tmr10ms_t duration = 0;
   bool isPowerOn = false;
 
+  // Для TBS Tango используем специальную логику - всегда показываем анимацию
+  // независимо от состояния кнопки питания (так как питание уже включено в boardInit)
+#if defined(RADIO_FAMILY_TBS)
+  while (duration < PWR_PRESS_DURATION_MIN()) {
+    duration = get_tmr10ms() - start;
+    drawStartupAnimation(duration, PWR_PRESS_DURATION_MIN());
+
+    // Проверяем, не отпустили ли кнопку слишком рано
+    if (!pwrPressed() && duration < PWR_PRESS_DURATION_MIN()) {
+      // Кнопка отпущена слишком рано - выключаемся
+      boardOff();
+      return;
+    }
+  }
+
+  // Успешный запуск - включаем подсветку и продолжаем
+  g_eeGeneral.backlightMode = e_backlight_mode_all;
+  haptic.play(15, 3, PLAY_NOW);
+
+#else
   while (pwrPressed()) {
     duration = get_tmr10ms() - start;
     if (duration < PWR_PRESS_DURATION_MIN()) {
@@ -1976,6 +1996,7 @@ void runStartupAnimation()
   if (duration < PWR_PRESS_DURATION_MIN() || duration >= PWR_PRESS_DURATION_MAX) {
     boardOff();
   }
+#endif
 }
 #endif
 
@@ -2277,37 +2298,6 @@ int main()
 #endif
 
   boardInit();
-
-  // Проверяем, включено ли питание - если нет, то ждем нажатия кнопки
-  if (!g_powerEnabled) {
-    TRACE("MAIN: Power not enabled, waiting for power button\n");
-
-    // Ждем нажатия кнопки питания для включения системы
-    while (!g_powerEnabled) {
-      // Проверяем кнопку питания
-      if (pwrPressed()) {
-        TRACE("MAIN: Power button pressed, enabling power and restarting\n");
-
-        // Включаем питание
-        pwrOn();
-
-        // Включаем питание и делаем полный перезапуск для чистой инициализации
-        pwrOn();
-
-        // Устанавливаем флаг питания перед перезапуском
-        g_powerEnabled = 1;
-
-        TRACE("MAIN: Power enabled, system reset for clean startup\n");
-
-        // Полный системный reset для чистого запуска с включенным питанием
-        NVIC_SystemReset();
-      }
-
-      // Маленькая задержка
-      volatile uint32_t delay = 1000;
-      while (delay--) { __ASM volatile("nop"); }
-    }
-  }
 
 #if defined(COLORLCD)
   loadFonts();

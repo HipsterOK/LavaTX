@@ -280,29 +280,26 @@ uint8_t g_powerEnabled = 0;
   // Инициализация питания (PWR_ON начинает с LOW)
   pwrInit();
 
-  // ПРОВЕРЯЕМ КНОПКУ ПИТАНИЯ - если не нажата, то НЕ ВКЛЮЧАЕМ ПИТАНИЕ
-  if (!pwrPressed()) {
-    TRACE("BOARD_INIT: Power button not pressed, system will not start\n");
-    // Устанавливаем флаг, что питание не включено
-    g_powerEnabled = 0;
-    // Минимальная инициализация без питания
-    BACKLIGHT_DISABLE();
-    return; // Выходим из boardInit() без включения питания
-  }
-
-  // КНОПКА НАЖАТА - ВКЛЮЧАЕМ ПИТАНИЕ И ЗАПУСКАЕМ СИСТЕМУ
-  TRACE("BOARD_INIT: Power button pressed, enabling power and starting system\n");
+  // Всегда включаем питание для нормальной работы системы
+  TRACE("BOARD_INIT: Enabling power and starting system\n");
   g_powerEnabled = 1; // Устанавливаем флаг, что питание включено
 
   // ВКЛЮЧАЕМ ПИТАНИЕ
   pwrOn();
 
-  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ (увеличена для надежности)
-  volatile uint32_t delay = 200000;  // 200ms для полной стабилизации TPS63060
+  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ (увеличена для совместимости с разными платами)
+  volatile uint32_t delay = 500000;  // 500ms для полной стабилизации TPS63060 и LCD
   while (delay--) { __ASM volatile("nop"); }
 
-  // ИНИЦИАЛИЗИРУЕМ LCD ПОСЛЕ ВКЛЮЧЕНИЯ ПИТАНИЯ
+  // ИНИЦИАЛИЗИРУЕМ GPIOC для LCD и SD_DETECT
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
+
+  // Инициализация SD_DETECT (PC5) как вход с pull-up - РАНО, сразу после включения питания
+  GPIO_InitTypeDef GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin = SD_DETECT_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(SD_DETECT_GPIO_PORT, &GPIO_InitStructure);
 
   delaysInit();
   TRACE("LCD: delaysInit completed\n");
@@ -328,15 +325,9 @@ uint8_t g_powerEnabled = 0;
 
   TRACE("Power enabled and LCD initialized - system starting\n");
  
-   // Теперь продолжаем нормальную инициализацию RCC
-   // RCC для GPIOC/D/E уже включен выше для LCD
- 
-   // Инициализация SD_DETECT (PC5) как вход с pull-up
-   GPIO_InitTypeDef GPIO_InitStructure;
-   GPIO_InitStructure.GPIO_Pin = SD_DETECT_PIN;
-   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-   GPIO_Init(SD_DETECT_GPIO_PORT, &GPIO_InitStructure);
+  // Теперь продолжаем нормальную инициализацию RCC
+  // RCC для GPIOC/D/E уже включен выше для LCD
+  // SD_DETECT уже инициализирован выше
  
    // Теперь продолжаем нормальную инициализацию
    bool skipCharging = false;
