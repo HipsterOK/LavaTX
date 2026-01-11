@@ -287,39 +287,11 @@ uint8_t g_powerEnabled = 0;
   // ВКЛЮЧАЕМ ПИТАНИЕ
   pwrOn();
 
-  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ (увеличена для совместимости с разными платами)
-  volatile uint32_t delay = 500000;  // 500ms для полной стабилизации TPS63060 и LCD
+  // ЗАДЕРЖКА ДЛЯ СТАБИЛИЗАЦИИ ПИТАНИЯ
+  volatile uint32_t delay = 200000;  // 200ms для полной стабилизации TPS63060
   while (delay--) { __ASM volatile("nop"); }
 
-  // ИНИЦИАЛИЗИРУЕМ GPIOC для LCD
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
-
-  // Включаем SPI1 для LCD до инициализации
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
-
-  delaysInit();
-  TRACE("LCD: delaysInit completed\n");
-
-  lcdInit();
-  TRACE("LCD: lcdInit completed\n");
-
-  // Дополнительная задержка после инициализации LCD
-  delay = 50000;  // 50ms
-  while (delay--) { __ASM volatile("nop"); }
-  TRACE("LCD: delay after init completed\n");
-
-  // Очистить экран и продолжить нормальную работу
-  lcdClear();
-  TRACE("LCD: Screen cleared for normal operation\n");
-
-  lcdRefresh();
-  TRACE("LCD: Normal refresh completed\n");
-
-  // Для монохромного дисплея подсветка не нужна
-  // BACKLIGHT_ENABLE();
-  TRACE("LCD: LCD initialization completed\n");
-
-  TRACE("Power enabled and LCD initialized - system starting\n");
+  TRACE("Power enabled - system starting\n");
 
   // Теперь продолжаем нормальную инициализацию RCC
   // RCC для GPIOC/D/E уже включен выше для LCD
@@ -350,8 +322,8 @@ uint8_t g_powerEnabled = 0;
                         TELEMETRY_RCC_APB1Periph | AUX_SERIAL_RCC_APB1Periph,
                         ENABLE);
  
-  // 3. Добавление SPI1 уже включен выше для LCD, добавляем остальные
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10 | ADC_RCC_APB2Periph, ENABLE);
+  // 3. Добавление SPI1 (LCD) на APB2
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1| RCC_APB2Periph_SYSCFG | RCC_APB2Periph_TIM10 | ADC_RCC_APB2Periph, ENABLE);
  
  #elif defined(RADIO_MAMBO)
    RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | KEYS_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
@@ -378,7 +350,7 @@ uint8_t g_powerEnabled = 0;
  #if defined(ROTARY_ENCODER_NAVIGATION)
    rotaryEncoderInit();
  #endif
-   adcInit();  // delaysInit() и lcdInit() уже вызваны выше
+   adcInit();
  
  #if defined(RADIO_MAMBO)
    backlightInit();
@@ -388,7 +360,32 @@ uint8_t g_powerEnabled = 0;
    audioInit(); // Включаем audio
    init2MhzTimer();
    init5msTimer();
- 
+
+   // ИНИЦИАЛИЗИРУЕМ LCD ПОСЛЕ ВКЛЮЧЕНИЯ ПИТАНИЯ
+   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE, ENABLE);
+
+   delaysInit();
+   TRACE("LCD: delaysInit completed\n");
+
+   lcdInit();
+   TRACE("LCD: lcdInit completed\n");
+
+   // Дополнительная задержка после инициализации LCD
+   volatile uint32_t lcd_delay = 50000;  // 50ms
+   while (lcd_delay--) { __ASM volatile("nop"); }
+   TRACE("LCD: delay after init completed\n");
+
+   // Очистить экран и продолжить нормальную работу
+   lcdClear();
+   TRACE("LCD: Screen cleared for normal operation\n");
+
+   lcdRefresh();
+   TRACE("LCD: Normal refresh completed\n");
+
+   // Для монохромного дисплея подсветка не нужна
+   // BACKLIGHT_ENABLE();
+   TRACE("LCD: LCD initialization completed\n");
+
    // Инициализация статусных LED
    statusLedInit();
  
