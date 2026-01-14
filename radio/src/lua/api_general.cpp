@@ -657,43 +657,35 @@ static int luaCrossfireTelemetryPop(lua_State * L)
   // Для TBS: используем CRSF телеметрию для внутреннего модуля
   if (IS_INTERNAL_MODULE_ENABLED() && g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
     extern Fifo<uint8_t, 128> intCrsfTelemetryFifo;
-    if (intCrsfTelemetryFifo.size() >= 4) { // CRSF пакет: sync(1) + length(1) + type(1) + payload + crc(1)
-      uint8_t sync = 0;
-      intCrsfTelemetryFifo.pop(sync);
-      if (sync == UART_SYNC) {
-        uint8_t length = 0;
-        intCrsfTelemetryFifo.pop(length);
-        if (length >= 2 && intCrsfTelemetryFifo.size() >= length) { // type + payload + crc
-          uint8_t type = 0;
-          intCrsfTelemetryFifo.pop(type);
 
-          // Для CRSF команд от ELRS (type >= 0x28)
-          if (type >= 0x28) {
-            lua_pushnumber(L, type);
+    // Простая реализация: если есть данные, читаем их
+    if (intCrsfTelemetryFifo.size() >= 4) {
+      uint8_t sync = 0, length = 0, type = 0;
 
-            lua_newtable(L);
-            uint8_t payloadSize = length - 2; // без type и crc
-            for (uint8_t i = 0; i < payloadSize && i < 6; i++) {
-              uint8_t byte = 0;
-              intCrsfTelemetryFifo.pop(byte);
-              lua_pushinteger(L, i + 1);
-              lua_pushinteger(L, byte);
-              lua_settable(L, -3);
-            }
-            // Пропускаем CRC
-            if (intCrsfTelemetryFifo.size() > 0) {
-              uint8_t crc = 0;
-              intCrsfTelemetryFifo.pop(crc);
-            }
-            return 2;
-          } else {
-            // Пропускаем неизвестные пакеты
-            for (uint8_t i = 0; i < length - 1; i++) {
-              uint8_t dummy = 0;
-              intCrsfTelemetryFifo.pop(dummy);
-            }
+      if (intCrsfTelemetryFifo.pop(sync) && sync == UART_SYNC &&
+          intCrsfTelemetryFifo.pop(length) && length >= 2 &&
+          intCrsfTelemetryFifo.size() >= length &&
+          intCrsfTelemetryFifo.pop(type)) {
+
+        lua_pushnumber(L, type);
+        lua_newtable(L);
+
+        // Читаем payload (length - 1, без crc)
+        uint8_t payloadSize = length - 1;
+        for (uint8_t i = 0; i < payloadSize; i++) {
+          uint8_t byte = 0;
+          if (intCrsfTelemetryFifo.pop(byte)) {
+            lua_pushinteger(L, i + 1);
+            lua_pushinteger(L, byte);
+            lua_settable(L, -3);
           }
         }
+
+        // Пропускаем CRC
+        uint8_t crc = 0;
+        intCrsfTelemetryFifo.pop(crc);
+
+        return 2;
       }
     }
   }
@@ -746,87 +738,43 @@ When called without parameters, it will only return the status of the output buf
 static int luaCrossfireTelemetryPush(lua_State * L)
 {
 #if defined(RADIO_FAMILY_TBS)
-  if (IS_INTERNAL_MODULE_ENABLED()) {
-    if (lua_gettop(L) == 0) {
-      lua_pushboolean(L, outputTelemetryBuffer.isAvailable());
-    }
-    else if (outputTelemetryBuffer.isAvailable()) {
-      uint8_t command = luaL_checkunsigned(L, 1);
-      luaL_checktype(L, 2, LUA_TTABLE);
-      uint8_t length = luaL_len(L, 2);
-
-      // For TBS, send CRSF data directly via telemetry
-      outputTelemetryBuffer.setDestination(TELEMETRY_ENDPOINT_SPORT);
-      outputTelemetryBuffer.pushByte(MODULE_ADDRESS);
-      outputTelemetryBuffer.pushByte(2 + length); // 1(COMMAND) + data length + 1(CRC)
-      outputTelemetryBuffer.pushByte(command); // COMMAND
-      for (int i = 0; i < length; i++) {
-        lua_rawgeti(L, 2, i + 1);
-        outputTelemetryBuffer.pushByte(luaL_checkunsigned(L, -1));
-      }
-      outputTelemetryBuffer.pushByte(crc8(outputTelemetryBuffer.data + 1, 1 + length));
-
-      lua_pushboolean(L, true);
-    }
-    else {
-      lua_pushboolean(L, false);
-    }
-    return 1;
-  }
-#endif
-#if defined(RADIO_FAMILY_TBS)
   // Для TBS: прямое управление внутренним CRSF модулем через PD5
   if (IS_INTERNAL_MODULE_ENABLED() && g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
     if (lua_gettop(L) == 0) {
       lua_pushboolean(L, true);
+      return 1;
     }
     else {
       uint8_t command = luaL_checkunsigned(L, 1);
       luaL_checktype(L, 2, LUA_TTABLE);
       uint8_t length = luaL_len(L, 2);
 
-    // Отправляем CRSF пакет для ELRS через внешний модуль (PC6/PC7)
-    // Формируем правильный CRSF extended пакет для команд настройки
-    uint8_t packet[64];
-    uint8_t idx = 0;
+      // Создаем CRSF пакет для отправки во внутренний модуль
+      uint8_t packet[64];
+      uint32_t packetSize = 0;
 
-    packet[idx++] = LIBCRSF_UART_SYNC;  // 0xC8 (flight controller sync)
-    packet[idx++] = LIBCRSF_BROADCAST_ADD;  // device_addr: broadcast
-    packet[idx++] = 4 + length;      // frame_size: dest_addr(1) + orig_addr(1) + type(1) + payload + crc(1)
-    packet[idx++] = command;         // type/command
-    packet[idx++] = LIBCRSF_BROADCAST_ADD;  // dest_addr: broadcast
-    packet[idx++] = LIBCRSF_FC_ADD;  // orig_addr: flight controller
+      // Формируем CRSF пакет: sync + length + type + payload + crc
+      packet[packetSize++] = UART_SYNC;           // sync byte
+      packet[packetSize++] = length + 2;          // length (type + payload + crc)
+      packet[packetSize++] = command;             // command type
 
-    // Добавляем данные из Lua таблицы
-    for (int i = 0; i < length; i++) {
-      lua_rawgeti(L, 2, i + 1);
-      packet[idx++] = luaL_checkunsigned(L, -1);
-      lua_pop(L, 1);
-    }
-
-    // CRC рассчитывается по всему пакету после sync
-    uint8_t crc = crc8(packet + 1, idx - 1);
-    packet[idx++] = crc;
-
-      // Отправляем через телеметрию UART (USART2) на PD5
-      // Debug: добавляем небольшую задержку перед отправкой
-      for (volatile int delay = 0; delay < 1000; delay++);
-
-      for (uint8_t i = 0; i < idx; i++) {
-        uint32_t timeout = 10000;
-        while (!(USART2->SR & USART_SR_TXE) && timeout--) ;
-        if (timeout > 0) {
-          USART_SendData(USART2, packet[i]);
-        }
+      // Добавляем payload
+      for (int i = 0; i < length; i++) {
+        lua_rawgeti(L, 2, i + 1);
+        packet[packetSize++] = luaL_checkunsigned(L, -1);
       }
 
-      // Ждем завершения передачи
-      uint32_t timeout = 10000;
-      while (!(USART2->SR & USART_SR_TC) && timeout--) ;
+      // Вычисляем и добавляем CRC
+      uint8_t crc = crc8(&packet[2], packetSize - 3);
+      packet[packetSize++] = crc;
+
+      // Отправляем пакет через UART2 (PD5) - внутренний CRSF модуль
+      extern void sendCrsfPacketToInternalModule(const uint8_t* data, uint32_t size);
+      sendCrsfPacketToInternalModule(packet, packetSize);
 
       lua_pushboolean(L, true);
+      return 1;
     }
-    return 1;
   }
 #endif
 

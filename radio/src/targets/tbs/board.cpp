@@ -1068,4 +1068,22 @@ extern "C" void TELEMETRY_USART_IRQHandler(void)
     }
     status = TELEMETRY_USART->SR;
   }
-} // extern "C" {
+}
+
+// Функция для отправки CRSF пакетов во внутренний модуль через UART2
+void sendCrsfPacketToInternalModule(const uint8_t* data, uint32_t size)
+{
+  // Проверяем, что внутренний модуль включен и это CRSF
+  if (!IS_INTERNAL_MODULE_ENABLED() || g_model.moduleData[INTERNAL_MODULE].type != MODULE_TYPE_CROSSFIRE) {
+    return;
+  }
+
+  // Отправляем данные через USART2 (PD5)
+  for (uint32_t i = 0; i < size; i++) {
+    while (!(USART2->SR & USART_SR_TXE));
+    USART_SendData(USART2, data[i]);
+  }
+
+  // Ждем завершения передачи
+  while (!(USART2->SR & USART_SR_TC));
+}

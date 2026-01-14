@@ -21,6 +21,25 @@ local handsetId = 0xEF
 
 -- Для внутреннего модуля TBS пробуем разные адреса
 local internalModuleAddresses = {0xEE, 0xC8, 0xCA}
+
+-- Функция для проверки статуса внутреннего модуля
+local function checkInternalModuleStatus()
+  -- Проверяем, включен ли внутренний модуль в настройках модели
+  local internalModuleEnabled = false
+  local internalModuleType = 0
+
+  -- В OpenTX можно получить информацию о модулях через getFieldInfo
+  pcall(function()
+    -- Пытаемся получить информацию о внутреннем модуле
+    local fieldInfo = getFieldInfo("Internal RF")
+    if fieldInfo then
+      internalModuleEnabled = true
+      -- Проверяем тип модуля (CRSF = значение, соответствующее MODULE_TYPE_CROSSFIRE)
+    end
+  end)
+
+  return internalModuleEnabled
+end
 local deviceName = ""
 local lineIndex = 1
 local pageOffset = 0
@@ -542,19 +561,24 @@ end
 
 local function refreshNext()
   local command, data = crossfireTelemetryPop()
-  if command == 0x29 then
-    parseDeviceInfoMessage(data)
-  elseif command == 0x2B then
-    parseParameterInfoMessage(data)
-    if #loadQ > 0 then
-      fieldTimeout = 0 -- request next chunk immediately
-    elseif fieldPopup then
-      fieldTimeout = getTime() + fieldPopup.timeout
+  if command then
+    -- Отладка: показываем принятые команды
+    if command == 0x29 then
+      parseDeviceInfoMessage(data)
+    elseif command == 0x2B then
+      parseParameterInfoMessage(data)
+      if #loadQ > 0 then
+        fieldTimeout = 0 -- request next chunk immediately
+      elseif fieldPopup then
+        fieldTimeout = getTime() + fieldPopup.timeout
+      end
+    elseif command == 0x2D then
+      parseElrsV1Message(data)
+    elseif command == 0x2E then
+      parseElrsInfoMessage(data)
+    else
+      -- Отладка: неизвестная команда
     end
-  elseif command == 0x2D then
-    parseElrsV1Message(data)
-  elseif command == 0x2E then
-    parseElrsInfoMessage(data)
   end
 
   local time = getTime()
@@ -564,7 +588,7 @@ local function refreshNext()
       fieldTimeout = time + fieldPopup.timeout
     end
   elseif time > devicesRefreshTimeout and fields_count < 1  then
-    devicesRefreshTimeout = time + 100 -- 1s
+    devicesRefreshTimeout = time + 500 -- 5s (увеличено для отладки)
     -- Пробуем разные адреса для поиска устройств (включая внутренний модуль)
     for i, addr in ipairs(internalModuleAddresses) do
       crossfireTelemetryPush(0x28, { 0x00, addr })
@@ -575,11 +599,11 @@ local function refreshNext()
     else
       crossfireTelemetryPush(0x2D, { deviceId, handsetId, 0x0, 0x0 })
     end
-    linkstatTimeout = time + 100
+    linkstatTimeout = time + 500 -- 5s (увеличено для отладки)
   elseif time > fieldTimeout and fields_count ~= 0 then
     if #loadQ > 0 then
       crossfireTelemetryPush(0x2C, { deviceId, handsetId, loadQ[#loadQ], fieldChunk })
-      fieldTimeout = time + 50 -- 0.5s
+      fieldTimeout = time + 200 -- 2s (увеличено для отладки)
     end
   end
 
@@ -617,8 +641,10 @@ local function lcd_title_color()
     lcd.drawText(LCD_W - textSize - 5, 4, tostring(elrsFlags), RIGHT + BOLD + CUSTOM_COLOR)
   else
     local title = fields_count > 0 and deviceName or "Loading..."
+    -- Добавляем отладочную информацию
+    local debugInfo = "INT:" .. (deviceIsELRS_TX and "Y" or "N") .. " " .. goodBadPkt
     lcd.drawText(textXoffset + 1, 4, title, CUSTOM_COLOR)
-    lcd.drawText(LCD_W - 5, 4, goodBadPkt, RIGHT + BOLD + CUSTOM_COLOR)
+    lcd.drawText(LCD_W - 5, 4, debugInfo, RIGHT + BOLD + CUSTOM_COLOR)
   end
   -- progress bar
   if #loadQ > 0 and fields_count > 0 then
@@ -650,7 +676,9 @@ local function lcd_title_bw()
       lcd.drawText(textXoffset, 1, elrsFlagsInfo, INVERS)
     else
       local title = fields_count > 0 and deviceName or "Loading..."
-      lcd.drawText(textXoffset, 1, title, INVERS)
+      -- Добавляем отладочную информацию
+      local debugInfo = "INT:" .. (deviceIsELRS_TX and "Y" or "N") .. " " .. goodBadPkt
+      lcd.drawText(textXoffset, 1, title .. " " .. debugInfo, INVERS)
     end
   end
 end
@@ -926,6 +954,8 @@ end
 local function init()
   setLCDvar()
   setMock()
+  -- Проверяем статус внутреннего модуля
+  local internalStatus = checkInternalModuleStatus()
   setLCDvar = nil
   setMock = nil
 end

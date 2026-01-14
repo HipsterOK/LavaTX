@@ -795,8 +795,11 @@
  
  void trampolineInit(void);
  void boardReboot2bootloader(uint32_t isNeedFlash, uint32_t HwId, uint32_t sn);
- void loadDefaultRadioSettings(void);
- void onUSBConnectMenu(const char * result);
- 
- #define PLL_M      4
+void loadDefaultRadioSettings(void);
+void onUSBConnectMenu(const char * result);
+
+// Функция для отправки CRSF пакетов во внутренний модуль
+void sendCrsfPacketToInternalModule(const uint8_t* data, uint32_t size);
+
+#define PLL_M      4
  #define PLL_N      168
