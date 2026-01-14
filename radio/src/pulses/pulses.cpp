@@ -191,9 +191,6 @@ uint8_t getRequiredProtocol(uint8_t module)
 #endif
       protocol = PROTOCOL_CHANNELS_CROSSFIRE;
       break;
-    case MODULE_TYPE_ELRS:
-      protocol = PROTOCOL_CHANNELS_ELRS;
-      break;
 #endif
 
 #if defined(AFHDS3)
@@ -262,7 +259,6 @@ void enablePulsesExternalModule(uint8_t protocol)
 
 #if defined(CROSSFIRE)
     case PROTOCOL_CHANNELS_CROSSFIRE:
-    case PROTOCOL_CHANNELS_ELRS:
       EXTERNAL_MODULE_ON();
       mixerSchedulerSetPeriod(EXTERNAL_MODULE, CROSSFIRE_PERIOD);
       break;
@@ -387,7 +383,6 @@ bool setupPulsesExternalModule(uint8_t protocol)
 
 #if defined(CROSSFIRE)
     case PROTOCOL_CHANNELS_CROSSFIRE:
-    case PROTOCOL_CHANNELS_ELRS:
     {
       ModuleSyncStatus& status = getModuleSyncStatus(EXTERNAL_MODULE);
       if (status.isValid()) {
@@ -465,17 +460,8 @@ static void enablePulsesInternalModule(uint8_t protocol)
   // start new protocol hardware here
 
   switch (protocol) {
-#if defined(INTERNAL_MODULE_ELRS)
+#if defined(INTERNAL_MODULE_CRSF)
     case PROTOCOL_CHANNELS_CROSSFIRE:
-    case PROTOCOL_CHANNELS_ELRS:
-#if !defined(RADIO_FAMILY_TBS)
-      intmoduleSerialStart(ELRS_INTERNAL_BAUDRATE, true, USART_Parity_No, USART_StopBits_1, USART_WordLength_8b);
-#endif
-      mixerSchedulerSetPeriod(INTERNAL_MODULE, CROSSFIRE_PERIOD);
-      break;
-#elif defined(INTERNAL_MODULE_CRSF)
-    case PROTOCOL_CHANNELS_CROSSFIRE:
-    case PROTOCOL_CHANNELS_ELRS:
       // Для TBS: внутренний модуль работает через PD5 и USART2
       // UART уже инициализирован в boardInit()
       mixerSchedulerSetPeriod(INTERNAL_MODULE, CROSSFIRE_PERIOD);

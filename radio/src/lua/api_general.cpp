@@ -655,9 +655,7 @@ static int luaCrossfireTelemetryPop(lua_State * L)
 {
 #if defined(RADIO_FAMILY_TBS)
   // Для TBS: используем CRSF телеметрию для внутреннего модуля
-  if (IS_INTERNAL_MODULE_ENABLED() &&
-      (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE ||
-       g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_ELRS)) {
+  if (IS_INTERNAL_MODULE_ENABLED() && g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
     extern Fifo<uint8_t, 128> intCrsfTelemetryFifo;
 
     // Простая реализация: если есть данные, читаем их
@@ -740,10 +738,8 @@ When called without parameters, it will only return the status of the output buf
 static int luaCrossfireTelemetryPush(lua_State * L)
 {
 #if defined(RADIO_FAMILY_TBS)
-  // Для TBS: управление внутренним CRSF/ELRS модулем через PD5
-  if (IS_INTERNAL_MODULE_ENABLED() &&
-      (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE ||
-       g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_ELRS)) {
+  // Для TBS: управление внутренним CRSF модулем через PD5
+  if (IS_INTERNAL_MODULE_ENABLED() && g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
     if (lua_gettop(L) == 0) {
       lua_pushboolean(L, true);
       return 1;
@@ -783,8 +779,7 @@ static int luaCrossfireTelemetryPush(lua_State * L)
 #endif
 
   bool sport = (telemetryProtocol == PROTOCOL_TELEMETRY_CROSSFIRE);
-  bool internal = (moduleState[INTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_CROSSFIRE ||
-                   moduleState[INTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_ELRS);
+  bool internal = (moduleState[INTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_CROSSFIRE);
 
   if (!internal && !sport) {
     lua_pushnil(L);

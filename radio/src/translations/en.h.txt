@@ -679,7 +679,6 @@
 #define TR_MONITOR_MIXER_DESC          "Mixers"
 #if defined(RADIO_FAMILY_TBS)
     #define TR_CROSSFIRE               "Crossfire"
-    #define TR_ELRS                    "ELRS"
     #define TR_RECEIVER_NUM            TR("ModelMatch", "Receiver No.")
 #else
     #define TR_RECEIVER_NUM            TR("RxNum", "Receiver No.")

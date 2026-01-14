@@ -595,11 +595,6 @@ bool isModuleUsingSport(uint8_t moduleBay, uint8_t moduleType)
       if (moduleBay == INTERNAL_MODULE)
         return false;
 #endif
-#if defined(INTERNAL_MODULE_ELRS)
-    case MODULE_TYPE_ELRS:
-      if (moduleBay == INTERNAL_MODULE)
-        return false;
-#endif
 
     default:
       return true;
@@ -627,10 +622,6 @@ bool isInternalModuleAvailable(int moduleType)
   }
 #endif
 
-#if defined(INTERNAL_MODULE_ELRS)
-  if (moduleType == MODULE_TYPE_CROSSFIRE || moduleType == MODULE_TYPE_ELRS)
-    return true;
-#endif
 
 #if defined(INTERNAL_MODULE_MULTI)
   if (moduleType == MODULE_TYPE_MULTIMODULE)

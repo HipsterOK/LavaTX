@@ -158,21 +158,6 @@ static void pollIntMulti()
 }
 #endif
 
-#if defined(INTERNAL_MODULE_ELRS)
-static void pollIntELRS()
-{
-#if defined(RADIO_FAMILY_TBS)
-  // Для TBS: используем специальную обработку для внутреннего CRSF/ELRS модуля
-  extern Fifo<uint8_t, 128> intCrsfTelemetryFifo;
-  uint8_t data;
-  while (intCrsfTelemetryFifo.pop(data)) {
-    processCrossfireTelemetryData(data, INTERNAL_MODULE);
-  }
-#else
-  pollIntTelemetry(processCrossfireTelemetryData);
-#endif
-}
-#endif
 
 #if !defined(PCBSKY9X)
 static void pollExtTelemetry()

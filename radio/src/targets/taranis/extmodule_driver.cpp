@@ -346,7 +346,6 @@ void extmoduleSendNextFrame()
 
 #if defined(CROSSFIRE)
     case PROTOCOL_CHANNELS_CROSSFIRE:
-    case PROTOCOL_CHANNELS_ELRS:
       sportSendBuffer(extmodulePulsesData.crossfire.pulses, extmodulePulsesData.crossfire.length);
       break;
 #endif

@@ -523,9 +523,8 @@ void boardInit()
    }
    crsfInit(); // Включаем CRSF с правильными настройками
 
-   // Для ELRS/Crossfire на PD5: отключаем стандартную телеметрию и настраиваем CRSF
-   if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE ||
-       g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_ELRS) {
+   // Для Crossfire на PD5: отключаем стандартную телеметрию и настраиваем CRSF
+   if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
      // Инициализируем CRSF на PD5 вместо стандартной телеметрии
      initCrsfOnTelemetryPort();
    } else {
@@ -1059,9 +1058,8 @@ extern "C" void TELEMETRY_USART_IRQHandler(void)
       // Debug: счетчик принятых байт (для диагностики)
       debugCounter++;
 
-      // Если внутренний модуль - CRSF или ELRS, перенаправляем данные в intCrsfTelemetryFifo
-      if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE ||
-          g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_ELRS) {
+      // Если внутренний модуль - CRSF, перенаправляем данные в intCrsfTelemetryFifo
+      if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
         extern Fifo<uint8_t, 128> intCrsfTelemetryFifo;
         intCrsfTelemetryFifo.push(data);
       } else {
@@ -1075,10 +1073,8 @@ extern "C" void TELEMETRY_USART_IRQHandler(void)
 // Функция для отправки CRSF пакетов во внутренний модуль через UART2
 void sendCrsfPacketToInternalModule(const uint8_t* data, uint32_t size)
 {
-  // Проверяем, что внутренний модуль включен и это CRSF или ELRS
-  if (!IS_INTERNAL_MODULE_ENABLED() ||
-      (g_model.moduleData[INTERNAL_MODULE].type != MODULE_TYPE_CROSSFIRE &&
-       g_model.moduleData[INTERNAL_MODULE].type != MODULE_TYPE_ELRS)) {
+  // Проверяем, что внутренний модуль включен и это CRSF
+  if (!IS_INTERNAL_MODULE_ENABLED() || g_model.moduleData[INTERNAL_MODULE].type != MODULE_TYPE_CROSSFIRE) {
     return;
   }
 
@@ -1095,10 +1091,8 @@ void sendCrsfPacketToInternalModule(const uint8_t* data, uint32_t size)
 // Функция для отправки CRSF пакетов во внешний модуль через USART6
 void sendCrsfPacketToExternalModule(const uint8_t* data, uint32_t size)
 {
-  // Проверяем, что внешний модуль включен и это CRSF или ELRS
-  if (!IS_EXTERNAL_MODULE_ENABLED() ||
-      (g_model.moduleData[EXTERNAL_MODULE].type != MODULE_TYPE_CROSSFIRE &&
-       g_model.moduleData[EXTERNAL_MODULE].type != MODULE_TYPE_ELRS)) {
+  // Проверяем, что внешний модуль включен и это CRSF
+  if (!IS_EXTERNAL_MODULE_ENABLED() || g_model.moduleData[EXTERNAL_MODULE].type != MODULE_TYPE_CROSSFIRE) {
     return;
   }
 

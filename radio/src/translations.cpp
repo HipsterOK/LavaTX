@@ -742,7 +742,6 @@ const char STR_BIND_OK[] = TR_BIND_OK;
 
 #if defined(RADIO_FAMILY_TBS)
 const char STR_CROSSFIRE[] = TR_CROSSFIRE;
-const char STR_ELRS[] = TR_ELRS;
 #endif
 
 const char STR_MULTI_CUSTOM[] = TR_MULTI_CUSTOM;
