@@ -470,6 +470,7 @@ extern const char STR_BIND_OK[];
 
 #if defined(RADIO_FAMILY_TBS)
 extern const char STR_CROSSFIRE[];
+extern const char STR_ELRS[];
 #endif
 
 extern const char STR_INTERNALRF[];

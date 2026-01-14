@@ -798,8 +798,9 @@
 void loadDefaultRadioSettings(void);
 void onUSBConnectMenu(const char * result);
 
-// Функция для отправки CRSF пакетов во внутренний модуль
+// Функции для отправки CRSF пакетов в модули
 void sendCrsfPacketToInternalModule(const uint8_t* data, uint32_t size);
+void sendCrsfPacketToExternalModule(const uint8_t* data, uint32_t size);
 
 #define PLL_M      4
  #define PLL_N      168

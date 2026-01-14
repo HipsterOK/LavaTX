@@ -1087,3 +1087,23 @@ void sendCrsfPacketToInternalModule(const uint8_t* data, uint32_t size)
   // Ждем завершения передачи
   while (!(USART2->SR & USART_SR_TC));
 }
+
+// Функция для отправки CRSF пакетов во внешний модуль через USART6
+void sendCrsfPacketToExternalModule(const uint8_t* data, uint32_t size)
+{
+  // Проверяем, что внешний модуль включен и это CRSF или ELRS
+  if (!IS_EXTERNAL_MODULE_ENABLED() ||
+      (g_model.moduleData[EXTERNAL_MODULE].type != MODULE_TYPE_CROSSFIRE &&
+       g_model.moduleData[EXTERNAL_MODULE].type != MODULE_TYPE_ELRS)) {
+    return;
+  }
+
+  // Отправляем данные через USART6 (PC6/PC7)
+  for (uint32_t i = 0; i < size; i++) {
+    while (!(EXTMODULE_USART->SR & USART_SR_TXE));
+    USART_SendData(EXTMODULE_USART, data[i]);
+  }
+
+  // Ждем завершения передачи
+  while (!(EXTMODULE_USART->SR & USART_SR_TC));
+}

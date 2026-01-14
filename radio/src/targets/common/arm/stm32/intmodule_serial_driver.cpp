@@ -204,6 +204,7 @@ void intmoduleSendNextFrame()
 
 #if defined(INTERNAL_MODULE_ELRS)
     case PROTOCOL_CHANNELS_CROSSFIRE:
+    case PROTOCOL_CHANNELS_ELRS:
       intmoduleSendBuffer(intmodulePulsesData.crossfire.pulses,intmodulePulsesData.crossfire.length);
       break;
 #endif

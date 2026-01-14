@@ -738,8 +738,9 @@ When called without parameters, it will only return the status of the output buf
 static int luaCrossfireTelemetryPush(lua_State * L)
 {
 #if defined(RADIO_FAMILY_TBS)
-  // Для TBS: прямое управление внутренним CRSF модулем через PD5
-  if (IS_INTERNAL_MODULE_ENABLED() && g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
+  // Для TBS: управление внешним CRSF/ELRS модулем через PC6/PC7 (USART6)
+  if (IS_EXTERNAL_MODULE_ENABLED() && (g_model.moduleData[EXTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE ||
+                                      g_model.moduleData[EXTERNAL_MODULE].type == MODULE_TYPE_ELRS)) {
     if (lua_gettop(L) == 0) {
       lua_pushboolean(L, true);
       return 1;
@@ -749,7 +750,7 @@ static int luaCrossfireTelemetryPush(lua_State * L)
       luaL_checktype(L, 2, LUA_TTABLE);
       uint8_t length = luaL_len(L, 2);
 
-      // Создаем CRSF пакет для отправки во внутренний модуль
+      // Создаем CRSF пакет для отправки во внешний модуль
       uint8_t packet[64];
       uint32_t packetSize = 0;
 
@@ -768,9 +769,9 @@ static int luaCrossfireTelemetryPush(lua_State * L)
       uint8_t crc = crc8(&packet[2], packetSize - 3);
       packet[packetSize++] = crc;
 
-      // Отправляем пакет через UART2 (PD5) - внутренний CRSF модуль
-      extern void sendCrsfPacketToInternalModule(const uint8_t* data, uint32_t size);
-      sendCrsfPacketToInternalModule(packet, packetSize);
+      // Отправляем пакет через USART6 (PC6/PC7) - внешний CRSF/ELRS модуль
+      extern void sendCrsfPacketToExternalModule(const uint8_t* data, uint32_t size);
+      sendCrsfPacketToExternalModule(packet, packetSize);
 
       lua_pushboolean(L, true);
       return 1;
@@ -779,7 +780,8 @@ static int luaCrossfireTelemetryPush(lua_State * L)
 #endif
 
   bool sport = (telemetryProtocol == PROTOCOL_TELEMETRY_CROSSFIRE);
-  bool internal = (moduleState[INTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_CROSSFIRE);
+  bool internal = (moduleState[INTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_CROSSFIRE ||
+                   moduleState[INTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_ELRS);
 
   if (!internal && !sport) {
     lua_pushnil(L);
