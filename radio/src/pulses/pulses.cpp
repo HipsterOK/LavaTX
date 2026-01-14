@@ -468,14 +468,16 @@ static void enablePulsesInternalModule(uint8_t protocol)
 #if defined(INTERNAL_MODULE_ELRS)
     case PROTOCOL_CHANNELS_CROSSFIRE:
     case PROTOCOL_CHANNELS_ELRS:
+#if !defined(RADIO_FAMILY_TBS)
       intmoduleSerialStart(ELRS_INTERNAL_BAUDRATE, true, USART_Parity_No, USART_StopBits_1, USART_WordLength_8b);
+#endif
       mixerSchedulerSetPeriod(INTERNAL_MODULE, CROSSFIRE_PERIOD);
       break;
 #elif defined(INTERNAL_MODULE_CRSF)
     case PROTOCOL_CHANNELS_CROSSFIRE:
     case PROTOCOL_CHANNELS_ELRS:
-      // Для TBS: просто помечаем, что внутренний CRSF модуль активен
-      // Данные будут отправляться через Lua API напрямую
+      // Для TBS: внутренний модуль работает через PD5 и USART2
+      // UART уже инициализирован в boardInit()
       mixerSchedulerSetPeriod(INTERNAL_MODULE, CROSSFIRE_PERIOD);
       break;
 #elif defined(PXX1) && !defined(INTMODULE_USART)

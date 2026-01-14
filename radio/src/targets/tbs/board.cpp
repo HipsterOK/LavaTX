@@ -523,8 +523,9 @@ void boardInit()
    }
    crsfInit(); // Включаем CRSF с правильными настройками
 
-   // Для ELRS на PD5: отключаем стандартную телеметрию и настраиваем CRSF
-   if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
+   // Для ELRS/Crossfire на PD5: отключаем стандартную телеметрию и настраиваем CRSF
+   if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE ||
+       g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_ELRS) {
      // Инициализируем CRSF на PD5 вместо стандартной телеметрии
      initCrsfOnTelemetryPort();
    } else {
@@ -1058,8 +1059,9 @@ extern "C" void TELEMETRY_USART_IRQHandler(void)
       // Debug: счетчик принятых байт (для диагностики)
       debugCounter++;
 
-      // Если внутренний модуль - CRSF, перенаправляем данные в intCrsfTelemetryFifo
-      if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
+      // Если внутренний модуль - CRSF или ELRS, перенаправляем данные в intCrsfTelemetryFifo
+      if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE ||
+          g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_ELRS) {
         extern Fifo<uint8_t, 128> intCrsfTelemetryFifo;
         intCrsfTelemetryFifo.push(data);
       } else {
@@ -1073,8 +1075,10 @@ extern "C" void TELEMETRY_USART_IRQHandler(void)
 // Функция для отправки CRSF пакетов во внутренний модуль через UART2
 void sendCrsfPacketToInternalModule(const uint8_t* data, uint32_t size)
 {
-  // Проверяем, что внутренний модуль включен и это CRSF
-  if (!IS_INTERNAL_MODULE_ENABLED() || g_model.moduleData[INTERNAL_MODULE].type != MODULE_TYPE_CROSSFIRE) {
+  // Проверяем, что внутренний модуль включен и это CRSF или ELRS
+  if (!IS_INTERNAL_MODULE_ENABLED() ||
+      (g_model.moduleData[INTERNAL_MODULE].type != MODULE_TYPE_CROSSFIRE &&
+       g_model.moduleData[INTERNAL_MODULE].type != MODULE_TYPE_ELRS)) {
     return;
   }
 
