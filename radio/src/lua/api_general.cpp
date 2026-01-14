@@ -25,6 +25,8 @@
 #include "lua_api.h"
 #include "telemetry/frsky.h"
 #include "telemetry/multi.h"
+#include "io/frsky_sport.h"
+#include "io/crsf/crsf.h"
 
 #if defined(PCBX12S)
   #include "lua/lua_exports_x12s.inc"   // this line must be after lua headers
@@ -651,6 +653,53 @@ Pops a received Crossfire Telemetry packet from the queue.
 */
 static int luaCrossfireTelemetryPop(lua_State * L)
 {
+#if defined(RADIO_FAMILY_TBS)
+  // Для TBS: используем CRSF телеметрию для внутреннего модуля
+  if (IS_INTERNAL_MODULE_ENABLED() && g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
+    extern Fifo<uint8_t, 128> intCrsfTelemetryFifo;
+    if (intCrsfTelemetryFifo.size() >= 4) { // CRSF пакет: sync(1) + length(1) + type(1) + payload + crc(1)
+      uint8_t sync = 0;
+      intCrsfTelemetryFifo.pop(sync);
+      if (sync == UART_SYNC) {
+        uint8_t length = 0;
+        intCrsfTelemetryFifo.pop(length);
+        if (length >= 2 && intCrsfTelemetryFifo.size() >= length) { // type + payload + crc
+          uint8_t type = 0;
+          intCrsfTelemetryFifo.pop(type);
+
+          // Для CRSF команд от ELRS (type >= 0x28)
+          if (type >= 0x28) {
+            lua_pushnumber(L, type);
+
+            lua_newtable(L);
+            uint8_t payloadSize = length - 2; // без type и crc
+            for (uint8_t i = 0; i < payloadSize && i < 6; i++) {
+              uint8_t byte = 0;
+              intCrsfTelemetryFifo.pop(byte);
+              lua_pushinteger(L, i + 1);
+              lua_pushinteger(L, byte);
+              lua_settable(L, -3);
+            }
+            // Пропускаем CRC
+            if (intCrsfTelemetryFifo.size() > 0) {
+              uint8_t crc = 0;
+              intCrsfTelemetryFifo.pop(crc);
+            }
+            return 2;
+          } else {
+            // Пропускаем неизвестные пакеты
+            for (uint8_t i = 0; i < length - 1; i++) {
+              uint8_t dummy = 0;
+              intCrsfTelemetryFifo.pop(dummy);
+            }
+          }
+        }
+      }
+    }
+  }
+  return 0;
+#else
+  // Original CRSF implementation
   if (!luaInputTelemetryFifo) {
     luaInputTelemetryFifo = new Fifo<uint8_t, LUA_TELEMETRY_INPUT_FIFO_SIZE>();
     if (!luaInputTelemetryFifo) {
@@ -660,7 +709,6 @@ static int luaCrossfireTelemetryPop(lua_State * L)
 
   uint8_t length = 0, data = 0;
   if (luaInputTelemetryFifo->probe(length) && luaInputTelemetryFifo->size() >= uint32_t(length)) {
-    // length value includes the length field
     luaInputTelemetryFifo->pop(length);
     luaInputTelemetryFifo->pop(data); // command
     lua_pushnumber(L, data);
@@ -673,6 +721,7 @@ static int luaCrossfireTelemetryPop(lua_State * L)
     }
     return 2;
   }
+#endif
 
   return 0;
 }
@@ -705,6 +754,9 @@ static int luaCrossfireTelemetryPush(lua_State * L)
       uint8_t command = luaL_checkunsigned(L, 1);
       luaL_checktype(L, 2, LUA_TTABLE);
       uint8_t length = luaL_len(L, 2);
+
+      // For TBS, send CRSF data directly via telemetry
+      outputTelemetryBuffer.setDestination(TELEMETRY_ENDPOINT_SPORT);
       outputTelemetryBuffer.pushByte(MODULE_ADDRESS);
       outputTelemetryBuffer.pushByte(2 + length); // 1(COMMAND) + data length + 1(CRC)
       outputTelemetryBuffer.pushByte(command); // COMMAND
@@ -712,13 +764,8 @@ static int luaCrossfireTelemetryPush(lua_State * L)
         lua_rawgeti(L, 2, i + 1);
         outputTelemetryBuffer.pushByte(luaL_checkunsigned(L, -1));
       }
-      outputTelemetryBuffer.pushByte(crc8(outputTelemetryBuffer.data + 2, 1 + length));
-      telemetryOutputSetTrigger(command);
-#if !defined(SIMU)
-      libCrsfRouting(DEVICE_INTERNAL, outputTelemetryBuffer.data);
-      outputTelemetryBuffer.reset();
-      outputTelemetryBufferTrigger = 0x00;
-#endif
+      outputTelemetryBuffer.pushByte(crc8(outputTelemetryBuffer.data + 1, 1 + length));
+
       lua_pushboolean(L, true);
     }
     else {
@@ -727,6 +774,62 @@ static int luaCrossfireTelemetryPush(lua_State * L)
     return 1;
   }
 #endif
+#if defined(RADIO_FAMILY_TBS)
+  // Для TBS: прямое управление внутренним CRSF модулем через PD5
+  if (IS_INTERNAL_MODULE_ENABLED() && g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
+    if (lua_gettop(L) == 0) {
+      lua_pushboolean(L, true);
+    }
+    else {
+      uint8_t command = luaL_checkunsigned(L, 1);
+      luaL_checktype(L, 2, LUA_TTABLE);
+      uint8_t length = luaL_len(L, 2);
+
+    // Отправляем CRSF пакет для ELRS через внешний модуль (PC6/PC7)
+    // Формируем правильный CRSF extended пакет для команд настройки
+    uint8_t packet[64];
+    uint8_t idx = 0;
+
+    packet[idx++] = LIBCRSF_UART_SYNC;  // 0xC8 (flight controller sync)
+    packet[idx++] = LIBCRSF_BROADCAST_ADD;  // device_addr: broadcast
+    packet[idx++] = 4 + length;      // frame_size: dest_addr(1) + orig_addr(1) + type(1) + payload + crc(1)
+    packet[idx++] = command;         // type/command
+    packet[idx++] = LIBCRSF_BROADCAST_ADD;  // dest_addr: broadcast
+    packet[idx++] = LIBCRSF_FC_ADD;  // orig_addr: flight controller
+
+    // Добавляем данные из Lua таблицы
+    for (int i = 0; i < length; i++) {
+      lua_rawgeti(L, 2, i + 1);
+      packet[idx++] = luaL_checkunsigned(L, -1);
+      lua_pop(L, 1);
+    }
+
+    // CRC рассчитывается по всему пакету после sync
+    uint8_t crc = crc8(packet + 1, idx - 1);
+    packet[idx++] = crc;
+
+      // Отправляем через телеметрию UART (USART2) на PD5
+      // Debug: добавляем небольшую задержку перед отправкой
+      for (volatile int delay = 0; delay < 1000; delay++);
+
+      for (uint8_t i = 0; i < idx; i++) {
+        uint32_t timeout = 10000;
+        while (!(USART2->SR & USART_SR_TXE) && timeout--) ;
+        if (timeout > 0) {
+          USART_SendData(USART2, packet[i]);
+        }
+      }
+
+      // Ждем завершения передачи
+      uint32_t timeout = 10000;
+      while (!(USART2->SR & USART_SR_TC) && timeout--) ;
+
+      lua_pushboolean(L, true);
+    }
+    return 1;
+  }
+#endif
+
   bool sport = (telemetryProtocol == PROTOCOL_TELEMETRY_CROSSFIRE);
   bool internal = (moduleState[INTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_CROSSFIRE);
 

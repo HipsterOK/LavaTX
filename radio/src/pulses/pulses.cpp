@@ -467,6 +467,8 @@ static void enablePulsesInternalModule(uint8_t protocol)
       break;
 #elif defined(INTERNAL_MODULE_CRSF)
     case PROTOCOL_CHANNELS_CROSSFIRE:
+      // Для TBS: просто помечаем, что внутренний CRSF модуль активен
+      // Данные будут отправляться через Lua API напрямую
       break;
 #elif defined(PXX1) && !defined(INTMODULE_USART)
     case PROTOCOL_CHANNELS_PXX1_PULSES:

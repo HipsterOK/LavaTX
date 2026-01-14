@@ -269,7 +269,44 @@ uint8_t g_powerEnabled = 0;
  
    POPUP_WARNING(g_battDebugMsg);
  }
- 
+
+static void initCrsfOnTelemetryPort(void)
+{
+  // Используем PD5 как CRSF UART вместо SPORT телеметрии
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+
+  GPIO_InitTypeDef GPIO_InitStructure;
+  USART_InitTypeDef USART_InitStructure;
+
+  // Настройка GPIO PD5 для single-wire CRSF (half-duplex)
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD; // Open-drain для half-duplex
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+  GPIO_PinAFConfig(GPIOD, GPIO_PinSource5, GPIO_AF_USART2);
+
+  // Настройка USART2 для ELRS (460800 baud, как в настройках ELRS)
+  USART_InitStructure.USART_BaudRate = 460800;
+  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+  USART_InitStructure.USART_StopBits = USART_StopBits_1;
+  USART_InitStructure.USART_Parity = USART_Parity_No;
+  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStructure.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
+  USART_Init(USART2, &USART_InitStructure);
+
+  // Включаем half-duplex режим для single-wire
+  USART_HalfDuplexCmd(USART2, ENABLE);
+  USART_Cmd(USART2, ENABLE);
+
+  // Включаем прерывания для приема данных
+  USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
+  NVIC_EnableIRQ(USART2_IRQn);
+}
+
 void boardInit()
 {
   TRACE("BOARD_INIT: Starting board initialization, SD_PRESENT=%d", SD_CARD_PRESENT() ? 1 : 0);
@@ -485,6 +522,15 @@ void boardInit()
      }
    }
    crsfInit(); // Включаем CRSF с правильными настройками
+
+   // Для ELRS на PD5: отключаем стандартную телеметрию и настраиваем CRSF
+   if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
+     // Инициализируем CRSF на PD5 вместо стандартной телеметрии
+     initCrsfOnTelemetryPort();
+   } else {
+     // Стандартная телеметрия SPORT
+     telemetryInit(PROTOCOL_TELEMETRY_FRSKY_SPORT);
+   }
 
    // Питание уже включено после нажатия кнопки, все системы готовы
    TRACE("BOARD_INIT: All systems initialized, device is ready\n");
@@ -987,4 +1033,39 @@ uint16_t getBatteryVoltage()
      NVIC_SystemReset();
  #endif
    }
- } // extern "C" {
+ }
+
+extern "C" void TELEMETRY_USART_IRQHandler(void)
+{
+  uint32_t status = TELEMETRY_USART->SR;
+  static uint8_t debugCounter = 0;
+
+  if ((status & USART_SR_TC) && (TELEMETRY_USART->CR1 & USART_CR1_TCIE)) {
+    TELEMETRY_USART->CR1 &= ~USART_CR1_TCIE;
+    telemetryPortSetDirectionInput();
+    while (status & (USART_FLAG_RXNE)) {
+      status = TELEMETRY_USART->DR;
+      status = TELEMETRY_USART->SR;
+    }
+  }
+
+  while (status & (USART_FLAG_RXNE | USART_FLAG_ERRORS)) {
+    uint8_t data = TELEMETRY_USART->DR;
+    if (status & USART_FLAG_ERRORS) {
+      telemetryErrors++;
+    }
+    else {
+      // Debug: счетчик принятых байт (для диагностики)
+      debugCounter++;
+
+      // Если внутренний модуль - CRSF, перенаправляем данные в intCrsfTelemetryFifo
+      if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
+        extern Fifo<uint8_t, 128> intCrsfTelemetryFifo;
+        intCrsfTelemetryFifo.push(data);
+      } else {
+        telemetryFifo.push(data);
+      }
+    }
+    status = TELEMETRY_USART->SR;
+  }
+} // extern "C" {

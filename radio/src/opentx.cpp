@@ -2288,23 +2288,24 @@ void runStartupAnimation()
  #endif
  
    boardInit();
- 
+
+#if defined(RADIO_FAMILY_TBS)
    // Проверяем, включено ли питание - если нет, то ждем нажатия кнопки
    if (!g_powerEnabled) {
      TRACE("MAIN: Power not enabled, waiting for power button\n");
- 
+
      // Ждем нажатия кнопки питания для включения системы
      while (!g_powerEnabled) {
        // Проверяем кнопку питания
        if (pwrPressed()) {
          TRACE("MAIN: Power button pressed, enabling power and restarting\n");
- 
+
          // Включаем питание
          pwrOn();
- 
+
          // Включаем питание и делаем полный перезапуск для чистой инициализации
          pwrOn();
- 
+
          // Устанавливаем флаг питания перед перезапуском
          g_powerEnabled = 1;
  
@@ -2319,8 +2320,9 @@ void runStartupAnimation()
        while (delay--) { __ASM volatile("nop"); }
      }
    }
- 
- #if defined(COLORLCD)
+#endif
+
+#if defined(COLORLCD)
    loadFonts();
  #endif
  

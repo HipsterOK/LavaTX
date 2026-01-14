@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=Companion 1.0.0
+GenericName=Transmitter Companion App
+Comment=The Ultimate Transmitter Companion
+Icon=companion10
+Exec='companion10'
+Terminal=false
+StartupNotify=false
+Categories=Application

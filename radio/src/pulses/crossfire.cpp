@@ -96,7 +96,12 @@ void setupPulsesCrossfire(uint8_t idx)
 #if !defined(PCBSKY9X)
   if (idx == INTERNAL_MODULE) {
     auto* p_data = &intmodulePulsesData.crossfire;
+    // Для TBS с внутренним CRSF модулем используем SPORT
+#if defined(RADIO_FAMILY_TBS) && defined(INTERNAL_MODULE_CRSF)
+    setupPulsesCrossfire(idx, p_data, TELEMETRY_ENDPOINT_SPORT);
+#else
     setupPulsesCrossfire(idx, p_data, 0);
+#endif
   }
   else if (telemetryProtocol == PROTOCOL_TELEMETRY_CROSSFIRE) {
     auto* p_data = &extmodulePulsesData.crossfire;

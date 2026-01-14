@@ -43,6 +43,7 @@
 #define PING_DEVICES_ID                0x28
 #define DEVICE_INFO_ID                 0x29
 #define REQUEST_SETTINGS_ID            0x2A
+#define ELRS_STATUS_ID                 0x2E
 #define COMMAND_ID                     0x32
 #define RADIO_ID                       0x3A
 

@@ -107,7 +107,8 @@ typedef enum {
   LIBCRSF_VTX_ADD                           = 0xCE,
   LIBCRSF_REMOTE_ADD                        = 0xEA,
   LIBCRSF_RC_RX                             = 0xEC,
-  LIBCRSF_RC_TX                             = 0xEE
+  LIBCRSF_RC_TX                             = 0xEE,
+  LIBCRSF_ELRS_LUA                          = 0xEF
 } _libCrsf_DEVICE_ADDRESS;
 
 /* ************************************************************************** */
@@ -122,6 +123,14 @@ typedef enum {
 #endif
 #ifdef LIBCRSF_ENABLE_COMMAND
   LIBCRSF_CMD_FRAME                         = 0x32,
+#endif
+#ifdef LIBCRSF_ENABLE_ELRS
+  LIBCRSF_EX_ELRS_STATUS                    = 0x2E,
+#endif
+#ifdef LIBCRSF_ENABLE_MSP
+  LIBCRSF_MSP_REQ                           = 0x7A,
+  LIBCRSF_MSP_RESP                          = 0x7B,
+  LIBCRSF_MSP_WRITE                         = 0x7C,
 #endif
 #ifdef LIBCRSF_ENABLE_OPENTX_RELATED
   LIBCRSF_OPENTX_RELATED						        = 0x3A,

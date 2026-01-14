@@ -323,7 +323,7 @@
 // Telemetry
 #if defined(RADIO_TANGO)
 #define TELEMETRY_RCC_AHB1Periph (RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_DMA1)
-#define TELEMETRY_RCC_APB1Periph RCC_APB1Periph_USART3
+#define TELEMETRY_RCC_APB1Periph RCC_APB1Periph_USART2
 
 // ---- ОТКЛЮЧАЕМ DIR, ЧТОБЫ НЕ МЕШАЛ ПЕРЕКЛЮЧАТЕЛЮ SA ----
 #define TELEMETRY_DIR_GPIO       0
@@ -337,25 +337,33 @@
 #define TELEMETRY_RX_POLARITY_INVERT() TELEMETRY_RX_POLARITY_GPIO->BSRRL = TELEMETRY_RX_POLARITY_PIN
 #define TELEMETRY_RX_POLARITY_NORMAL() TELEMETRY_RX_POLARITY_GPIO->BSRRH = TELEMETRY_RX_POLARITY_PIN
 
-// UART3 TX/RX (не трогаем)
+// Для ELRS: однопроводная связь на PD5 (как внешний CRSF модуль)
 #define TELEMETRY_GPIO             GPIOD
-#define TELEMETRY_TX_GPIO_PIN      GPIO_Pin_8 // PD.08
-#define TELEMETRY_RX_GPIO_PIN      GPIO_Pin_9 // PD.09
-#define TELEMETRY_GPIO_PinSource_TX GPIO_PinSource8
-#define TELEMETRY_GPIO_PinSource_RX GPIO_PinSource9
-#define TELEMETRY_GPIO_AF          GPIO_AF_USART3
-#define TELEMETRY_USART            USART3
-#define TELEMETRY_DMA_Stream_TX    DMA1_Stream3
+#define TELEMETRY_TX_GPIO_PIN      GPIO_Pin_5 // PD.05 (стандартная телеметрия)
+#define TELEMETRY_RX_GPIO_PIN      GPIO_Pin_5 // PD.05
+#define TELEMETRY_GPIO_PinSource_TX GPIO_PinSource5
+#define TELEMETRY_GPIO_PinSource_RX GPIO_PinSource5
+#define TELEMETRY_GPIO_AF          GPIO_AF_USART2
+#define TELEMETRY_USART            USART2
+
+// Для внутреннего CRSF модуля используем внешний модуль порт
+#define INTERNAL_CRSF_TX_GPIO      GPIOC
+#define INTERNAL_CRSF_RX_GPIO      GPIOC
+#define INTERNAL_CRSF_TX_GPIO_PIN  GPIO_Pin_6 // PC.06 (JR bay)
+#define INTERNAL_CRSF_RX_GPIO_PIN  GPIO_Pin_7 // PC.07 (JR bay)
+#define INTERNAL_CRSF_GPIO_AF      GPIO_AF_USART6
+#define INTERNAL_CRSF_USART        USART6
+#define TELEMETRY_DMA_Stream_TX    DMA1_Stream6
 #define TELEMETRY_DMA_Channel_TX   DMA_Channel_4
-#define TELEMETRY_DMA_TX_Stream_IRQ DMA1_Stream3_IRQn
-#define TELEMETRY_DMA_TX_IRQHandler DMA1_Stream3_IRQHandler
-#define TELEMETRY_DMA_TX_FLAG_TC   DMA_IT_TCIF3
-#define TELEMETRY_USART_IRQHandler  USART3_IRQHandler
-#define TELEMETRY_USART_IRQn        USART3_IRQn
+#define TELEMETRY_DMA_TX_Stream_IRQ DMA1_Stream6_IRQn
+#define TELEMETRY_DMA_TX_IRQHandler DMA1_Stream6_IRQHandler
+#define TELEMETRY_DMA_TX_FLAG_TC   DMA_IT_TCIF6
+#define TELEMETRY_USART_IRQHandler  USART2_IRQHandler
+#define TELEMETRY_USART_IRQn        USART2_IRQn
 
 #define TELEMETRY_EXTI_PortSource  EXTI_PortSourceGPIOD
-#define TELEMETRY_EXTI_PinSource   EXTI_PinSource9
-#define TELEMETRY_EXTI_LINE        EXTI_Line9
+#define TELEMETRY_EXTI_PinSource   EXTI_PinSource6
+#define TELEMETRY_EXTI_LINE        EXTI_Line6
 #define TELEMETRY_EXTI_IRQn        EXTI9_5_IRQn
 #define TELEMETRY_EXTI_TRIGGER     EXTI_Trigger_Rising
 #elif defined(RADIO_MAMBO)
@@ -386,7 +394,7 @@
 #define TELEMETRY_DMA_TX_Stream_IRQ DMA1_Stream6_IRQn
 #define TELEMETRY_DMA_TX_IRQHandler DMA1_Stream6_IRQHandler
 #define TELEMETRY_DMA_TX_FLAG_TC DMA_IT_TCIF6
-#define TELEMETRY_USART_IRQHandler USART2_IRQHandler
+#define TELEMETRY_USART_IRQHandler TELEMETRY_USART_IRQHandler_ORIG
 #define TELEMETRY_USART_IRQn USART2_IRQn
 #define TELEMETRY_EXTI_PortSource EXTI_PortSourceGPIOD
 #define TELEMETRY_EXTI_PinSource EXTI_PinSource6

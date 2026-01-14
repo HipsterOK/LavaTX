@@ -20,6 +20,8 @@
 
 #include "opentx.h"
 
+extern OutputTelemetryBuffer outputTelemetryBuffer;
+
 ModuleFifo intmoduleFifo;
 #if !defined(INTMODULE_DMA_STREAM)
 uint8_t * intmoduleTxBufferData;

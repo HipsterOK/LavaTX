@@ -241,6 +241,16 @@ void processCrossfireTelemetryFrame(uint8_t module)
       break;
     }
 
+    case ELRS_STATUS_ID:
+      // ELRS status frame: bad_pkts, good_pkts, flags
+      if (getCrossfireTelemetryValue<1>(3, value, module))
+        processCrossfireTelemetryValue(RX_RSSI1_INDEX, value);  // bad packets
+      if (getCrossfireTelemetryValue<2>(4, value, module))
+        processCrossfireTelemetryValue(RX_QUALITY_INDEX, value); // good packets
+      if (getCrossfireTelemetryValue<1>(6, value, module))
+        processCrossfireTelemetryValue(RF_MODE_INDEX, value);    // flags
+      break;
+
     case RADIO_ID:
       if (rxBuffer[3] == 0xEA     // radio address
           && rxBuffer[5] == 0x10  // timing correction frame
@@ -261,7 +271,17 @@ void processCrossfireTelemetryFrame(uint8_t module)
 
 #if defined(LUA)
     default:
-      if (luaInputTelemetryFifo && luaInputTelemetryFifo->hasSpace(rxBufferCount-2) ) {
+      // Специальная обработка для команд ELRS (внутренний модуль)
+      if (id >= 0x28 && id <= 0x2F) { // ELRS команды: ping, device info, parameters, etc.
+        extern Fifo<uint8_t, 128> intCrsfTelemetryFifo;
+        if (intCrsfTelemetryFifo.hasSpace(rxBufferCount)) {
+          for (uint8_t i = 0; i < rxBufferCount; i++) {
+            intCrsfTelemetryFifo.push(rxBuffer[i]);
+          }
+        }
+      }
+      // Обычная обработка для других пакетов
+      else if (luaInputTelemetryFifo && luaInputTelemetryFifo->hasSpace(rxBufferCount-2) ) {
         for (uint8_t i=1; i<rxBufferCount-1; i++) {
           // destination address and CRC are skipped
           luaInputTelemetryFifo->push(rxBuffer[i]);

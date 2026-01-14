@@ -142,6 +142,17 @@ void crsfThisDevice(uint8_t * pArr)
       break;
 #endif
 
+#ifdef LIBCRSF_ENABLE_MSP
+    case LIBCRSF_MSP_REQ:
+    case LIBCRSF_MSP_RESP:
+    case LIBCRSF_MSP_WRITE:
+      // Forward MSP frames to telemetry FIFO for processing
+      for (i = 0; i < *(pArr + LIBCRSF_LENGTH_ADD) + 2; i++) {
+        intCrsfTelemetryFifo.push(*(pArr + i));
+      }
+      break;
+#endif
+
     default:
       // Buffer telemetry data inside a FIFO to let telemetryWakeup read from it and keep the
       // compatibility with the existing telemetry infrastructure.

@@ -63,17 +63,16 @@ void telemetryPortInit(uint32_t baudrate, uint8_t mode)
   USART_InitTypeDef USART_InitStructure;
   GPIO_InitTypeDef GPIO_InitStructure;
 
-  GPIO_PinAFConfig(TELEMETRY_GPIO, TELEMETRY_GPIO_PinSource_RX, TELEMETRY_GPIO_AF);
+  // Для ELRS: single-wire half-duplex на PD5
   GPIO_PinAFConfig(TELEMETRY_GPIO, TELEMETRY_GPIO_PinSource_TX, TELEMETRY_GPIO_AF);
+  GPIO_PinAFConfig(TELEMETRY_GPIO, TELEMETRY_GPIO_PinSource_RX, TELEMETRY_GPIO_AF);
 
-  GPIO_InitStructure.GPIO_Pin = TELEMETRY_TX_GPIO_PIN | TELEMETRY_RX_GPIO_PIN;
+  GPIO_InitStructure.GPIO_Pin = TELEMETRY_TX_GPIO_PIN;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD; // Open-drain для half-duplex
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(TELEMETRY_GPIO, &GPIO_InitStructure);
-
-  telemetryInitDirPin();
 
   USART_DeInit(TELEMETRY_USART);
   USART_InitStructure.USART_BaudRate = baudrate;
@@ -88,8 +87,11 @@ void telemetryPortInit(uint32_t baudrate, uint8_t mode)
     USART_InitStructure.USART_Parity = USART_Parity_No;
   }
   USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-  USART_InitStructure.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
+  USART_InitStructure.USART_Mode = USART_Mode_Tx | USART_Mode_Rx; // TX и RX для half-duplex
   USART_Init(TELEMETRY_USART, &USART_InitStructure);
+
+  // Включаем half-duplex режим
+  USART_HalfDuplexCmd(TELEMETRY_USART, ENABLE);
 
   USART_Cmd(TELEMETRY_USART, ENABLE);
   USART_ITConfig(TELEMETRY_USART, USART_IT_RXNE, ENABLE);
@@ -308,7 +310,7 @@ extern "C" void TELEMETRY_DMA_TX_IRQHandler(void)
 }
 
 #define USART_FLAG_ERRORS (USART_FLAG_ORE | USART_FLAG_NE | USART_FLAG_FE | USART_FLAG_PE)
-extern "C" void TELEMETRY_USART_IRQHandler(void)
+extern "C" void TELEMETRY_USART_IRQHandler_ORIG(void)
 {
   DEBUG_INTERRUPT(INT_TELEM_USART);
   uint32_t status = TELEMETRY_USART->SR;

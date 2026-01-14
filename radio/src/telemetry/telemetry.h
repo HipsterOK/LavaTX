@@ -169,6 +169,11 @@ inline uint8_t modelTelemetryProtocol()
     return PROTOCOL_TELEMETRY_CROSSFIRE;
   }
 #endif
+#if defined(INTERNAL_MODULE_CRSF)
+  if (g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_CROSSFIRE) {
+    return PROTOCOL_TELEMETRY_CROSSFIRE;
+  }
+#endif
 
 #if defined(GHOST)
   if (g_model.moduleData[EXTERNAL_MODULE].type == MODULE_TYPE_GHOST) {
