@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=Simulator 1.0.0
+GenericName=Transmitter Simulator App
+Comment=The Ultimate Transmitter Simulator
+Icon=companion10
+Exec='simulator10'
+Terminal=false
+StartupNotify=false
+Categories=Application
